@@ -1,4 +1,5 @@
 const KEY_SENIOR_MODE = "senior_mode";
+const KEY_USER_ROLE = "user_role";
 
 function getSeniorMode() {
   return !!wx.getStorageSync(KEY_SENIOR_MODE);
@@ -11,4 +12,10 @@ function setSeniorMode(enabled) {
 module.exports = {
   getSeniorMode,
   setSeniorMode,
+  getUserRole() {
+    return wx.getStorageSync(KEY_USER_ROLE) || "adult";
+  },
+  setUserRole(role) {
+    wx.setStorageSync(KEY_USER_ROLE, role || "adult");
+  },
 };

@@ -8,6 +8,16 @@
     <view class="muted">开启后会放大字号和按钮点击区域。</view>
   </view>
 
+  <view class="card">
+    <view class="title">角色模拟（MVP）</view>
+    <radio-group bindchange="onRoleChange">
+      <label wx:for="{{roleOptions}}" wx:key="value" class="role-item">
+        <radio value="{{item.value}}" checked="{{role === item.value}}" />
+        <text>{{item.label}}</text>
+      </label>
+    </radio-group>
+  </view>
+
   <view class="card" bindtap="goHousehold">
     <view>家庭组织与权限</view>
   </view>

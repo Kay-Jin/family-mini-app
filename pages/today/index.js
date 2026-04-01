@@ -1,5 +1,5 @@
 const service = require("../../services/familyService");
-const { getSeniorMode } = require("../../utils/storage");
+const { getSeniorMode, getUserRole } = require("../../utils/storage");
 
 Page({
   data: {
@@ -7,10 +7,14 @@ Page({
     loading: false,
     error: "",
     seniorMode: false,
+    role: "adult",
   },
 
   onShow() {
-    this.setData({ seniorMode: getSeniorMode() });
+    this.setData({
+      seniorMode: getSeniorMode(),
+      role: getUserRole(),
+    });
     this.loadData(false);
   },
 

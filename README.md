@@ -9,6 +9,13 @@
 - F-M3 `pages/health/index`：健康数据看板（步数/睡眠）
 - F-M4 `pages/memories/index`：家庭相册列表与上传入口占位
 - F-M5 `pages/profile/index`：家账号与权限入口 + 长辈模式开关
+## 本轮增强
+
+- 相册支持实际选图上传流程（Mock 可直接完成上传并回显）
+- 页面接入角色模拟（adult / senior），用于演示差异化交互
+- senior 角色在相册页默认仅浏览，today 页显示简化提示
+- 上传与数据读取均通过 `services/familyService.js` 统一封装
+
 - 子页面：
   - `pages/profile/household/index` 家庭组织与角色
   - `pages/profile/visibility/index` 可见性与隐私配置

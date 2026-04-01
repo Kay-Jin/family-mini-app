@@ -1,13 +1,20 @@
-const { getSeniorMode, setSeniorMode } = require("../../utils/storage");
+const { getSeniorMode, setSeniorMode, getUserRole, setUserRole } = require("../../utils/storage");
 
 Page({
   data: {
     seniorMode: false,
     role: "adult",
+    roleOptions: [
+      { label: "成年成员（adult）", value: "adult" },
+      { label: "长辈成员（senior）", value: "senior" },
+    ],
   },
 
   onShow() {
-    this.setData({ seniorMode: getSeniorMode() });
+    this.setData({
+      seniorMode: getSeniorMode(),
+      role: getUserRole(),
+    });
   },
 
   onSeniorSwitch(e) {
@@ -23,5 +30,12 @@ Page({
 
   goVisibility() {
     wx.navigateTo({ url: "/pages/profile/visibility/index" });
+  },
+
+  onRoleChange(e) {
+    const role = e.detail.value;
+    setUserRole(role);
+    this.setData({ role });
+    wx.showToast({ title: `当前角色：${role}`, icon: "none" });
   },
 });

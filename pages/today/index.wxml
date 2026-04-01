@@ -12,6 +12,7 @@
     <button class="btn-primary" bindtap="onSafeCheckIn">
       {{seniorMode ? "我很好，已报平安" : "报平安（<2秒）"}}
     </button>
+    <view class="muted" wx:if="{{role === 'senior'}}">长辈模式下仅保留核心操作与简洁提示。</view>
   </view>
 
   <view class="card" wx:if="{{brief}}">

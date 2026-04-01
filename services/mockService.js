@@ -34,11 +34,28 @@ function getHealthSnapshot() {
   ];
 }
 
+const mockAlbum = [
+  { id: "p1", thumb_url: "", tags: ["早餐", "家人"], uploaded_by: "爸爸", created_at: "今天 08:10" },
+  { id: "p2", thumb_url: "", tags: ["散步"], uploaded_by: "奶奶", created_at: "昨天 18:40" },
+];
+
 function listAlbum() {
-  return [
-    { id: "p1", thumb_url: "", tags: ["早餐", "家人"], uploaded_by: "爸爸", created_at: "今天 08:10" },
-    { id: "p2", thumb_url: "", tags: ["散步"], uploaded_by: "奶奶", created_at: "昨天 18:40" },
-  ];
+  return [...mockAlbum];
+}
+
+function addAlbumPhoto(payload) {
+  const now = new Date();
+  const hh = `${now.getHours()}`.padStart(2, "0");
+  const mm = `${now.getMinutes()}`.padStart(2, "0");
+  const item = {
+    id: `p-${Date.now()}`,
+    thumb_url: payload.thumb_url || payload.local_path || "",
+    tags: payload.tags || ["日常"],
+    uploaded_by: payload.uploaded_by || "我",
+    created_at: `今天 ${hh}:${mm}`,
+  };
+  mockAlbum.unshift(item);
+  return item;
 }
 
 function listMembers() {
@@ -59,6 +76,7 @@ module.exports = {
   createCheckIn,
   getHealthSnapshot,
   listAlbum,
+  addAlbumPhoto,
   listMembers,
   getVisibility,
   updateVisibility,

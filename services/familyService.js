@@ -1,6 +1,6 @@
 const { USE_MOCK, HOUSEHOLD_ID, USER_ID } = require("./apiConfig");
 const mock = require("./mockService");
-const { request } = require("./http");
+const { request, uploadFile } = require("./http");
 
 function getMorningBrief() {
   if (USE_MOCK) return Promise.resolve(mock.getMorningBrief());
@@ -25,6 +25,22 @@ function listAlbum() {
   return request(`/households/${HOUSEHOLD_ID}/album`);
 }
 
+function addAlbumPhoto({ localPath, tags }) {
+  if (USE_MOCK) {
+    return Promise.resolve(
+      mock.addAlbumPhoto({
+        local_path: localPath,
+        tags: tags || ["日常"],
+        uploaded_by: "我",
+      })
+    );
+  }
+  return uploadFile(`/households/${HOUSEHOLD_ID}/album/upload`, localPath, {
+    user_uid: USER_ID,
+    tags: (tags || []).join(","),
+  });
+}
+
 function listMembers() {
   if (USE_MOCK) return Promise.resolve(mock.listMembers());
   return request(`/households/${HOUSEHOLD_ID}/members`);
@@ -45,6 +61,7 @@ module.exports = {
   createCheckIn,
   getHealthSnapshot,
   listAlbum,
+  addAlbumPhoto,
   listMembers,
   getVisibility,
   updateVisibility,

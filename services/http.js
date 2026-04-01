@@ -21,6 +21,33 @@ function request(path, method = "GET", data) {
   });
 }
 
+function uploadFile(path, filePath, formData) {
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: `${API_BASE_URL}${path}`,
+      filePath,
+      name: "file",
+      formData: formData || {},
+      timeout: 20000,
+      success(res) {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`HTTP ${res.statusCode}`));
+          return;
+        }
+        try {
+          resolve(res.data ? JSON.parse(res.data) : {});
+        } catch (_) {
+          resolve({});
+        }
+      },
+      fail(err) {
+        reject(new Error(err.errMsg || "upload failed"));
+      },
+    });
+  });
+}
+
 module.exports = {
   request,
+  uploadFile,
 };
