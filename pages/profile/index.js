@@ -2,8 +2,10 @@ const { getSeniorMode, setSeniorMode, getUserRole, setUserRole } = require("../.
 const {
   getApiBaseUrl,
   setApiBaseUrl,
-  getUseMock,
-  setUseMock,
+  getBackendMode,
+  setBackendMode,
+  getCloudEnvId,
+  setCloudEnvId,
   getAuthToken,
   setAuthToken,
 } = require("../../services/apiConfig");
@@ -16,8 +18,14 @@ Page({
       { label: "成年成员（adult）", value: "adult" },
       { label: "长辈成员（senior）", value: "senior" },
     ],
-    useMock: true,
+    backendMode: "mock",
+    backendModeOptions: [
+      { value: "mock", label: "Mock（本地模拟）" },
+      { value: "cloudbase", label: "CloudBase（微信云开发）" },
+      { value: "http", label: "HTTP API（自建后端）" },
+    ],
     apiBaseUrl: "",
+    cloudEnvId: "",
     authToken: "",
   },
 
@@ -25,8 +33,9 @@ Page({
     this.setData({
       seniorMode: getSeniorMode(),
       role: getUserRole(),
-      useMock: getUseMock(),
+      backendMode: getBackendMode(),
       apiBaseUrl: getApiBaseUrl(),
+      cloudEnvId: getCloudEnvId(),
       authToken: getAuthToken(),
     });
   },
@@ -53,11 +62,11 @@ Page({
     wx.showToast({ title: `当前角色：${role}`, icon: "none" });
   },
 
-  onUseMockChange(e) {
-    const enabled = !!e.detail.value;
-    setUseMock(enabled);
-    this.setData({ useMock: enabled });
-    wx.showToast({ title: enabled ? "已切换 Mock" : "已切换真实接口", icon: "none" });
+  onBackendModeChange(e) {
+    const mode = e.detail.value || "mock";
+    setBackendMode(mode);
+    this.setData({ backendMode: mode });
+    wx.showToast({ title: `后端模式：${mode}`, icon: "none" });
   },
 
   onApiInput(e) {
@@ -68,9 +77,20 @@ Page({
     this.setData({ authToken: e.detail.value || "" });
   },
 
+  onCloudEnvInput(e) {
+    this.setData({ cloudEnvId: e.detail.value || "" });
+  },
+
   onSaveApiConfig() {
     setApiBaseUrl(this.data.apiBaseUrl);
+    setCloudEnvId(this.data.cloudEnvId);
     setAuthToken(this.data.authToken);
+    if (wx.cloud && this.data.cloudEnvId) {
+      wx.cloud.init({
+        env: this.data.cloudEnvId,
+        traceUser: true,
+      });
+    }
     wx.showToast({ title: "接口配置已保存", icon: "success" });
   },
 });

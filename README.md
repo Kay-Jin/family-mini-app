@@ -40,18 +40,49 @@
 
 1. 用微信开发者工具导入仓库目录
 2. 选择“不使用云开发”即可直接预览
-3. 默认 `USE_MOCK=true`，可直接体验全流程
-4. 接真实后端：
-   - 在“我的”页关闭 `使用 Mock 数据`
-   - 在“我的”页配置 `API Base URL` 与 `Bearer Token`（可选）
-   - `HOUSEHOLD_ID` / `USER_ID` 当前来自 `services/apiConfig.js`（可按后端身份体系接入）
-   - 保持页面层不变，业务调用在 `services/familyService.js` 已抽象
+3. 默认后端模式为 `Mock`，可直接体验全流程
+4. 在“我的 -> 接口配置”可切换三种后端模式：
+   - `Mock（本地模拟）`
+   - `CloudBase（微信云开发）`
+   - `HTTP API（自建后端）`
+
+## CloudBase 迁移落地（已支持）
+
+### 前端配置
+
+1. 打开“我的 -> 接口配置”
+2. 选择 `CloudBase（微信云开发）`
+3. 填写 `CloudBase Env ID`
+4. 点击“保存接口配置”
+
+### 云函数目录
+
+- `cloudfunctions/family/index.js`
+- `cloudfunctions/family/package.json`
+
+在微信开发者工具中右键 `cloudfunctions/family` 进行“上传并部署：云端安装依赖”。
+
+### 需要的集合（建议）
+
+- `morning_briefs`
+- `check_ins`
+- `health_snapshots`
+- `album_items`
+- `members`
+- `invite_codes`
+- `visibility_settings`
+
+### 说明
+
+- 相册上传在 CloudBase 模式下使用 `wx.cloud.uploadFile`，文件地址写入 `album_items`
+- 所有业务操作通过云函数 `family` 的 `action` 分发处理
+- `openid` 由云函数侧获取并用于写入/鉴权基础字段
 
 ## 下一步建议
 
-- 接入真实后端与鉴权（家庭成员、报平安、健康、相册）
+- 完善 CloudBase 数据权限规则（按 household 成员限制读写）
 - 增加云函数/消息订阅用于晨报推送
-- 补齐长辈模式字号/触控尺寸全局样式策略
+- 结合真实业务补齐 household 创建/加入流程
 
 ## 测试文档
 
