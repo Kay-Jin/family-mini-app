@@ -89,3 +89,7 @@
 - 测试用例：`docs/test-cases.md`
 - 测试报告：`docs/test-report.md`
 
+## 设计文档
+
+- UI/UX 设计系统（温馨风）：`docs/ui-ux-design-system-v1.1.md`
+
