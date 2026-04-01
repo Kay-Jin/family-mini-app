@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="card">
+    <view class="title">可见性配置</view>
+    <view class="item">
+      <text>分享步数区间</text>
+      <switch data-key="share_step_band" checked="{{form.share_step_band}}" bindchange="onToggle" />
+    </view>
+    <view class="item">
+      <text>分享睡眠摘要</text>
+      <switch data-key="share_sleep_summary" checked="{{form.share_sleep_summary}}" bindchange="onToggle" />
+    </view>
+    <view class="item">
+      <text>分享天气</text>
+      <switch data-key="share_city_weather" checked="{{form.share_city_weather}}" bindchange="onToggle" />
+    </view>
+    <view class="item">
+      <text>分享最近报平安时间</text>
+      <switch data-key="share_last_checkin_time" checked="{{form.share_last_checkin_time}}" bindchange="onToggle" />
+    </view>
+  </view>
+</view>

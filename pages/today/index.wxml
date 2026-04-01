@@ -1,0 +1,20 @@
+<view class="container">
+  <view class="card">
+    <view class="title">每日家庭晨报</view>
+    <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
+  </view>
+
+  <view class="card">
+    <view class="title">一键报平安</view>
+    <button class="btn-primary" bindtap="onSafeCheckIn">
+      {{seniorMode ? "我很好，已报平安" : "报平安（<2秒）"}}
+    </button>
+  </view>
+
+  <view class="card" wx:if="{{brief}}">
+    <view class="title">成员摘要</view>
+    <view wx:for="{{brief.member_snippets}}" wx:key="uid" class="line">
+      {{item.display_name}}：{{item.note}}
+    </view>
+  </view>
+</view>

@@ -1,0 +1,9 @@
+{
+  "desc": "family mini app sitemap",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

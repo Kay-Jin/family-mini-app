@@ -1,0 +1,18 @@
+<view class="container">
+  <view class="card">
+    <view class="title">家账号与设置</view>
+    <view class="row">
+      <text>长辈模式</text>
+      <switch checked="{{seniorMode}}" bindchange="onSeniorSwitch" />
+    </view>
+    <view class="muted">开启后会放大字号和按钮点击区域。</view>
+  </view>
+
+  <view class="card" bindtap="goHousehold">
+    <view>家庭组织与权限</view>
+  </view>
+
+  <view class="card" bindtap="goVisibility">
+    <view>可见性与隐私</view>
+  </view>
+</view>

@@ -1,0 +1,4 @@
+.line {
+  margin-bottom: 12rpx;
+  color: #1c1b1a;
+}

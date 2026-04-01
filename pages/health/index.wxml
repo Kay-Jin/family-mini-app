@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="card">
+    <view class="title">健康数据看板</view>
+    <view class="muted">展示步数与睡眠概览（MVP 使用 Mock 数据）</view>
+  </view>
+
+  <view class="card" wx:for="{{snapshots}}" wx:key="date">
+    <view>{{item.date}}</view>
+    <view class="muted">步数：{{item.steps}}，睡眠：{{item.sleep_hours}}h</view>
+  </view>
+</view>

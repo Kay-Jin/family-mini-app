@@ -1,0 +1,43 @@
+{
+  "pages": [
+    "pages/today/index",
+    "pages/health/index",
+    "pages/memories/index",
+    "pages/profile/index",
+    "pages/profile/household/index",
+    "pages/profile/visibility/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "家",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F4F3F0",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#4C5A5B",
+    "selectedColor": "#2D6D5F",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/today/index",
+        "text": "今日"
+      },
+      {
+        "pagePath": "pages/health/index",
+        "text": "健康"
+      },
+      {
+        "pagePath": "pages/memories/index",
+        "text": "回忆"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
