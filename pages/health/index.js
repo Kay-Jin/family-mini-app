@@ -1,4 +1,5 @@
 const service = require("../../services/familyService");
+const { getSeniorMode } = require("../../utils/storage");
 
 Page({
   data: {
@@ -9,9 +10,11 @@ Page({
     },
     loading: false,
     error: "",
+    seniorMode: false,
   },
 
   onShow() {
+    this.setData({ seniorMode: getSeniorMode() });
     this.loadData();
   },
 

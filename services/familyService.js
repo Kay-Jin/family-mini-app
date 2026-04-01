@@ -1,13 +1,15 @@
-const { USE_MOCK, HOUSEHOLD_ID, USER_ID } = require("./apiConfig");
+const { getUseMock, HOUSEHOLD_ID, USER_ID } = require("./apiConfig");
 const mock = require("./mockService");
 const { request, uploadFile } = require("./http");
 
 function getMorningBrief() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.getMorningBrief());
   return request(`/households/${HOUSEHOLD_ID}/morning_briefs/today`);
 }
 
 function createCheckIn() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.createCheckIn());
   return request(`/households/${HOUSEHOLD_ID}/check_ins`, "POST", {
     user_uid: USER_ID,
@@ -16,21 +18,25 @@ function createCheckIn() {
 }
 
 function listCheckIns() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.getCheckIns());
   return request(`/households/${HOUSEHOLD_ID}/check_ins?limit=20`);
 }
 
 function getHealthSnapshot() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.getHealthSnapshot());
   return request(`/households/${HOUSEHOLD_ID}/health_snapshots?uid=${USER_ID}`);
 }
 
 function listAlbum() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.listAlbum());
   return request(`/households/${HOUSEHOLD_ID}/album`);
 }
 
 function addAlbumPhoto({ localPath, tags }) {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) {
     return Promise.resolve(
       mock.addAlbumPhoto({
@@ -47,26 +53,31 @@ function addAlbumPhoto({ localPath, tags }) {
 }
 
 function listMembers() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.listMembers());
   return request(`/households/${HOUSEHOLD_ID}/members`);
 }
 
 function updateMemberRole(uid, role) {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.updateMemberRole(uid, role));
   return request(`/households/${HOUSEHOLD_ID}/members/${uid}`, "PATCH", { role });
 }
 
 function createInviteCode(role) {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve({ code: mock.createInviteCode(role) });
   return request(`/households/${HOUSEHOLD_ID}/invite_codes`, "POST", { role });
 }
 
 function getVisibility() {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.getVisibility());
   return request(`/households/${HOUSEHOLD_ID}/settings/${USER_ID}`);
 }
 
 function updateVisibility(partial) {
+  const USE_MOCK = getUseMock();
   if (USE_MOCK) return Promise.resolve(mock.updateVisibility(partial));
   return request(`/households/${HOUSEHOLD_ID}/settings/${USER_ID}`, "PATCH", partial);
 }

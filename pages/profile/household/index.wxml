@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container {{seniorMode ? 'senior' : ''}}">
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
@@ -15,6 +15,7 @@
     </radio-group>
     <button class="btn-primary" bindtap="onCreateInviteCode">生成邀请码</button>
     <view wx:if="{{inviteCode}}" class="muted">邀请码：{{inviteCode}}</view>
+    <button wx:if="{{inviteCode}}" bindtap="onCopyInviteCode">复制邀请码</button>
   </view>
 
   <view class="card" wx:for="{{members}}" wx:key="uid">

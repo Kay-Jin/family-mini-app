@@ -1,12 +1,19 @@
-const { API_BASE_URL } = require("./apiConfig");
+const { getApiBaseUrl, getAuthToken } = require("./apiConfig");
 
 function request(path, method = "GET", data) {
+  const API_BASE_URL = getApiBaseUrl();
+  const authToken = getAuthToken();
   return new Promise((resolve, reject) => {
     wx.request({
       url: `${API_BASE_URL}${path}`,
       method,
       data,
       timeout: 12000,
+      header: authToken
+        ? {
+            Authorization: `Bearer ${authToken}`,
+          }
+        : {},
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data);
@@ -22,6 +29,8 @@ function request(path, method = "GET", data) {
 }
 
 function uploadFile(path, filePath, formData) {
+  const API_BASE_URL = getApiBaseUrl();
+  const authToken = getAuthToken();
   return new Promise((resolve, reject) => {
     wx.uploadFile({
       url: `${API_BASE_URL}${path}`,
@@ -29,6 +38,11 @@ function uploadFile(path, filePath, formData) {
       name: "file",
       formData: formData || {},
       timeout: 20000,
+      header: authToken
+        ? {
+            Authorization: `Bearer ${authToken}`,
+          }
+        : {},
       success(res) {
         if (res.statusCode < 200 || res.statusCode >= 300) {
           reject(new Error(`HTTP ${res.statusCode}`));

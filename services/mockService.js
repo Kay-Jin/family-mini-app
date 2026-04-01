@@ -21,6 +21,7 @@ function getMorningBrief() {
   return {
     date: "2026-04-01",
     summary_text: "昨晚奶奶睡眠6.5小时，今天天气晴，心情平稳。",
+    city_weather: "杭州 22°C 晴",
     member_snippets: [
       { uid: "u1", display_name: "爸爸", note: "今天上午开会，晚饭后有空。" },
       { uid: "u2", display_name: "奶奶", note: "早晨散步了20分钟。" },

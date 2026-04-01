@@ -30,3 +30,17 @@ page {
   background: #2d6d5f;
   color: #ffffff;
 }
+
+.senior {
+  font-size: 34rpx;
+}
+
+.senior .title {
+  font-size: 42rpx;
+}
+
+.senior .btn-primary,
+.senior button {
+  min-height: 96rpx;
+  font-size: 34rpx;
+}

@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container {{seniorMode ? 'senior' : ''}}">
   <view class="card">
     <view class="title">家账号与设置</view>
     <view class="row">
@@ -16,6 +16,17 @@
         <text>{{item.label}}</text>
       </label>
     </radio-group>
+  </view>
+
+  <view class="card">
+    <view class="title">接口配置</view>
+    <view class="row">
+      <text>使用 Mock 数据</text>
+      <switch checked="{{useMock}}" bindchange="onUseMockChange" />
+    </view>
+    <input class="input" placeholder="API Base URL" value="{{apiBaseUrl}}" bindinput="onApiInput" />
+    <input class="input" placeholder="Bearer Token（可选）" value="{{authToken}}" bindinput="onTokenInput" />
+    <button class="btn-primary" bindtap="onSaveApiConfig">保存接口配置</button>
   </view>
 
   <view class="card" bindtap="goHousehold">

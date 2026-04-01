@@ -1,13 +1,16 @@
 const service = require("../../../services/familyService");
+const { getSeniorMode } = require("../../../utils/storage");
 
 Page({
   data: {
     form: {},
     loading: false,
     error: "",
+    seniorMode: false,
   },
 
   async onShow() {
+    this.setData({ seniorMode: getSeniorMode() });
     await this.loadData();
   },
 

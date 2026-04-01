@@ -1,10 +1,11 @@
-<view class="container">
+<view class="container {{seniorMode ? 'senior' : ''}}">
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
 
   <view class="card" wx:if="{{visibility.include_in_morning_brief}}">
     <view class="title">每日家庭晨报</view>
     <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
+    <view wx:if="{{brief && visibility.share_city_weather}}" class="muted">天气：{{brief.city_weather}}</view>
   </view>
 
   <view class="card">

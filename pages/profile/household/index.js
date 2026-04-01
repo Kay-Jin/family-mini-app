@@ -1,4 +1,5 @@
 const service = require("../../../services/familyService");
+const { getSeniorMode } = require("../../../utils/storage");
 
 Page({
   data: {
@@ -8,9 +9,11 @@ Page({
     inviteCode: "",
     loading: false,
     error: "",
+    seniorMode: false,
   },
 
   onShow() {
+    this.setData({ seniorMode: getSeniorMode() });
     this.loadData();
   },
 
@@ -56,5 +59,13 @@ Page({
     } catch (err) {
       wx.showToast({ title: err.message || "生成失败", icon: "none" });
     }
+  },
+
+  onCopyInviteCode() {
+    if (!this.data.inviteCode) return;
+    wx.setClipboardData({
+      data: this.data.inviteCode,
+      success: () => wx.showToast({ title: "邀请码已复制", icon: "none" }),
+    });
   },
 });

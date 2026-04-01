@@ -18,6 +18,9 @@
 - 今日页接入可见性策略（晨报展示、报平安记录展示）
 - 健康页接入可见性策略（步数/睡眠可单独隐藏）
 - 家庭管理页支持成员角色调整与邀请码生成（MVP）
+- 新增运行时接口配置（Mock 开关、Base URL、Bearer Token）
+- `http` 请求与上传自动附带鉴权头（如已配置 Token）
+- Senior 模式扩展为多页面字号/按钮尺寸增强
 
 - 子页面：
   - `pages/profile/household/index` 家庭组织与角色
@@ -39,8 +42,9 @@
 2. 选择“不使用云开发”即可直接预览
 3. 默认 `USE_MOCK=true`，可直接体验全流程
 4. 接真实后端：
-   - 修改 `services/apiConfig.js` 中 `USE_MOCK=false`
-   - 配置 `API_BASE_URL` 与 `HOUSEHOLD_ID`
+   - 在“我的”页关闭 `使用 Mock 数据`
+   - 在“我的”页配置 `API Base URL` 与 `Bearer Token`（可选）
+   - `HOUSEHOLD_ID` / `USER_ID` 当前来自 `services/apiConfig.js`（可按后端身份体系接入）
    - 保持页面层不变，业务调用在 `services/familyService.js` 已抽象
 
 ## 下一步建议
