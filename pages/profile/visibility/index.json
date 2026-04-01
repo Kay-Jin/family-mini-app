@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "可见性与隐私"
+  "navigationBarTitleText": "可见性与隐私",
+  "enablePullDownRefresh": true
 }

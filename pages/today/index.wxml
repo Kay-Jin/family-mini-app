@@ -1,4 +1,7 @@
 <view class="container">
+  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{error}}" class="card error">{{error}}</view>
+
   <view class="card">
     <view class="title">每日家庭晨报</view>
     <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>

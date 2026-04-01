@@ -1,3 +1,4 @@
 {
-  "navigationBarTitleText": "家庭组织与权限"
+  "navigationBarTitleText": "家庭组织与权限",
+  "enablePullDownRefresh": true
 }

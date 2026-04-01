@@ -16,7 +16,10 @@
 ## 项目结构
 
 - `app.json`：页面路由 + TabBar（今日/健康/回忆/我的）
-- `services/mockService.js`：MVP Mock 数据与接口
+- `services/mockService.js`：MVP Mock 数据实现
+- `services/familyService.js`：业务服务层（可切换 Mock / HTTP）
+- `services/http.js`：统一请求封装
+- `services/apiConfig.js`：接口环境配置（`USE_MOCK`、`API_BASE_URL`、`HOUSEHOLD_ID`）
 - `utils/tokens.js`：设计 Token（颜色/间距）
 - `utils/storage.js`：长辈模式本地持久化
 
@@ -24,7 +27,11 @@
 
 1. 用微信开发者工具导入仓库目录
 2. 选择“不使用云开发”即可直接预览
-3. 如需接后端，将 `services/mockService.js` 替换为真实 API 调用
+3. 默认 `USE_MOCK=true`，可直接体验全流程
+4. 接真实后端：
+   - 修改 `services/apiConfig.js` 中 `USE_MOCK=false`
+   - 配置 `API_BASE_URL` 与 `HOUSEHOLD_ID`
+   - 保持页面层不变，业务调用在 `services/familyService.js` 已抽象
 
 ## 下一步建议
 

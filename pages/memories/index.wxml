@@ -1,4 +1,6 @@
 <view class="container">
+  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
     <view class="title">家庭相册</view>
     <button class="btn-primary" bindtap="onUploadTap">上传照片</button>

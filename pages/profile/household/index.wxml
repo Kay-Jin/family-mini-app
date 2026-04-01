@@ -1,4 +1,6 @@
 <view class="container">
+  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card" wx:for="{{members}}" wx:key="uid">
     <view>{{item.display_name}}</view>
     <view class="muted">角色：{{item.role}}</view>

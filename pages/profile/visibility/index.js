@@ -1,19 +1,38 @@
-const service = require("../../../services/mockService");
+const service = require("../../../services/familyService");
 
 Page({
   data: {
     form: {},
+    loading: false,
+    error: "",
   },
 
-  onShow() {
-    this.setData({ form: service.getVisibility() });
+  async onShow() {
+    await this.loadData();
   },
 
-  onToggle(e) {
+  async loadData() {
+    this.setData({ loading: true, error: "" });
+    try {
+      const form = await service.getVisibility();
+      this.setData({ form, loading: false });
+    } catch (err) {
+      this.setData({
+        loading: false,
+        error: err.message || "加载失败",
+      });
+    }
+  },
+
+  async onToggle(e) {
     const key = e.currentTarget.dataset.key;
     const value = !!e.detail.value;
     const next = { ...this.data.form, [key]: value };
-    service.updateVisibility({ [key]: value });
     this.setData({ form: next });
+    try {
+      await service.updateVisibility({ [key]: value });
+    } catch (err) {
+      wx.showToast({ title: err.message || "更新失败", icon: "none" });
+    }
   },
 });
