@@ -17,6 +17,46 @@ const checkInHistory = [
   { id: "c2", user_uid: "u1", display_name: "爸爸", created_at: "今天 08:15" },
 ];
 
+const checkInPolicy = {
+  enabled: true,
+  start_time: "08:00",
+  end_time: "10:00",
+  threshold_minutes: 60,
+  second_reminder_enabled: false,
+  second_reminder_minutes: 30,
+};
+
+let checkInAlerts = [
+  {
+    id: "a1",
+    member_name: "奶奶",
+    level: "attention",
+    message: "今日09:20尚未报平安",
+    created_at: "今天 09:20",
+  },
+];
+
+const careReminders = [
+  {
+    id: "r1",
+    type: "medicine",
+    title: "早餐后降压药",
+    remind_at: "08:00",
+    repeat_rule: "daily",
+    status: "active",
+  },
+  {
+    id: "r2",
+    type: "followup",
+    title: "心内科复诊",
+    remind_at: "2026-04-10 09:00",
+    repeat_rule: "none",
+    status: "active",
+  },
+];
+
+const helpRequests = [];
+
 function getMorningBrief() {
   return {
     date: "2026-04-01",
@@ -40,6 +80,7 @@ function createCheckIn() {
     created_at: `今天 ${hh}:${mm}`,
   };
   checkInHistory.unshift(item);
+  checkInAlerts = [];
   return { success: true, created_at: Date.now(), latest: item };
 }
 
@@ -94,6 +135,62 @@ function createInviteCode(role) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function getCheckinPolicy() {
+  return { ...checkInPolicy };
+}
+
+function updateCheckinPolicy(partial) {
+  Object.assign(checkInPolicy, partial || {});
+  return { ...checkInPolicy };
+}
+
+function getCheckinAlerts() {
+  if (!checkInPolicy.enabled) return [];
+  return [...checkInAlerts];
+}
+
+function listCareReminders() {
+  return [...careReminders];
+}
+
+function addCareReminder(payload) {
+  const item = {
+    id: `r-${Date.now()}`,
+    type: payload.type || "medicine",
+    title: payload.title || "未命名提醒",
+    remind_at: payload.remind_at || "08:00",
+    repeat_rule: payload.repeat_rule || "daily",
+    status: "active",
+  };
+  careReminders.unshift(item);
+  return item;
+}
+
+function setCareReminderDone(id, done) {
+  const target = careReminders.find((r) => r.id === id);
+  if (!target) throw new Error("reminder not found");
+  target.status = done ? "done" : "active";
+  return { ...target };
+}
+
+function createHelpRequest(type) {
+  const t = type || "call_me";
+  const item = {
+    id: `h-${Date.now()}`,
+    type: t,
+    message:
+      t === "unwell"
+        ? "身体不适，需要联系"
+        : t === "companionship"
+        ? "需要陪同帮助"
+        : "请尽快联系我",
+    created_at: Date.now(),
+    status: "sent",
+  };
+  helpRequests.unshift(item);
+  return item;
+}
+
 function updateVisibility(partial) {
   Object.assign(mockVisibility, partial || {});
   return mockVisibility;
@@ -113,6 +210,13 @@ module.exports = {
   updateMemberRole,
   getCheckIns,
   createInviteCode,
+  getCheckinPolicy,
+  updateCheckinPolicy,
+  getCheckinAlerts,
+  listCareReminders,
+  addCareReminder,
+  setCareReminderDone,
+  createHelpRequest,
   getVisibility,
   updateVisibility,
 };

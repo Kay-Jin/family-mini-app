@@ -94,6 +94,55 @@ function updateVisibility(partial) {
   return request(`/households/${HOUSEHOLD_ID}/settings/${USER_ID}`, "PATCH", partial);
 }
 
+function getCheckinPolicy() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.getCheckinPolicy());
+  if (mode === "cloudbase") return cloud.getCheckinPolicy();
+  return request(`/households/${HOUSEHOLD_ID}/checkin_policy`);
+}
+
+function updateCheckinPolicy(partial) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.updateCheckinPolicy(partial));
+  if (mode === "cloudbase") return cloud.updateCheckinPolicy(partial);
+  return request(`/households/${HOUSEHOLD_ID}/checkin_policy`, "PATCH", partial);
+}
+
+function getCheckinAlerts() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.getCheckinAlerts());
+  if (mode === "cloudbase") return cloud.getCheckinAlerts();
+  return request(`/households/${HOUSEHOLD_ID}/checkin_alerts?limit=20`);
+}
+
+function listCareReminders() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.listCareReminders());
+  if (mode === "cloudbase") return cloud.listCareReminders();
+  return request(`/households/${HOUSEHOLD_ID}/care_reminders`);
+}
+
+function addCareReminder(payload) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.addCareReminder(payload));
+  if (mode === "cloudbase") return cloud.addCareReminder(payload);
+  return request(`/households/${HOUSEHOLD_ID}/care_reminders`, "POST", payload);
+}
+
+function setCareReminderDone(id, done) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.setCareReminderDone(id, done));
+  if (mode === "cloudbase") return cloud.setCareReminderDone(id, done);
+  return request(`/households/${HOUSEHOLD_ID}/care_reminders/${id}`, "PATCH", { done });
+}
+
+function createHelpRequest(type) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.createHelpRequest(type));
+  if (mode === "cloudbase") return cloud.createHelpRequest(type);
+  return request(`/households/${HOUSEHOLD_ID}/help_requests`, "POST", { type });
+}
+
 module.exports = {
   getMorningBrief,
   createCheckIn,
@@ -106,4 +155,11 @@ module.exports = {
   createInviteCode,
   getVisibility,
   updateVisibility,
+  getCheckinPolicy,
+  updateCheckinPolicy,
+  getCheckinAlerts,
+  listCareReminders,
+  addCareReminder,
+  setCareReminderDone,
+  createHelpRequest,
 };

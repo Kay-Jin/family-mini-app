@@ -160,6 +160,116 @@ exports.main = async (event) => {
       return { ok: true, data: next.data[0] || null };
     }
 
+    if (action === "getCheckinPolicy") {
+      const rows = await db
+        .collection("checkin_policies")
+        .where({ householdId })
+        .limit(1)
+        .get();
+      if (rows.data.length) return { ok: true, data: rows.data[0] };
+      const defaults = {
+        householdId,
+        enabled: true,
+        start_time: "08:00",
+        end_time: "10:00",
+        threshold_minutes: 60,
+        second_reminder_enabled: false,
+        second_reminder_minutes: 30,
+        updated_at: new Date(),
+      };
+      await db.collection("checkin_policies").add({ data: defaults });
+      return { ok: true, data: defaults };
+    }
+
+    if (action === "updateCheckinPolicy") {
+      const partial = event.partial || {};
+      const rows = await db
+        .collection("checkin_policies")
+        .where({ householdId })
+        .limit(1)
+        .get();
+      if (!rows.data.length) {
+        await db.collection("checkin_policies").add({
+          data: {
+            householdId,
+            ...partial,
+            updated_at: new Date(),
+          },
+        });
+      } else {
+        await db.collection("checkin_policies").doc(rows.data[0]._id).update({
+          data: {
+            ...partial,
+            updated_at: new Date(),
+          },
+        });
+      }
+      const latest = await db
+        .collection("checkin_policies")
+        .where({ householdId })
+        .limit(1)
+        .get();
+      return { ok: true, data: latest.data[0] || null };
+    }
+
+    if (action === "getCheckinAlerts") {
+      const rows = await db
+        .collection("checkin_alerts")
+        .where({ householdId })
+        .orderBy("created_at", "desc")
+        .limit(20)
+        .get();
+      return { ok: true, data: rows.data };
+    }
+
+    if (action === "listCareReminders") {
+      const rows = await db
+        .collection("care_reminders")
+        .where({ householdId })
+        .orderBy("created_at", "desc")
+        .limit(100)
+        .get();
+      return { ok: true, data: rows.data };
+    }
+
+    if (action === "addCareReminder") {
+      const payload = {
+        householdId,
+        owner_openid: OPENID,
+        type: event.type || "medicine",
+        title: event.title || "未命名提醒",
+        remind_at: event.remind_at || "08:00",
+        repeat_rule: event.repeat_rule || "daily",
+        status: "active",
+        created_at: new Date(),
+      };
+      const added = await db.collection("care_reminders").add({ data: payload });
+      return { ok: true, data: { ...payload, _id: added._id } };
+    }
+
+    if (action === "setCareReminderDone") {
+      await db.collection("care_reminders").doc(event.id).update({
+        data: {
+          status: event.done ? "done" : "active",
+          updated_at: new Date(),
+        },
+      });
+      return { ok: true, data: { id: event.id, done: !!event.done } };
+    }
+
+    if (action === "createHelpRequest") {
+      const type = event.type || "call_me";
+      const payload = {
+        householdId,
+        sender_openid: OPENID,
+        type,
+        status: "sent",
+        created_at: new Date(),
+      };
+      const added = await db.collection("help_requests").add({ data: payload });
+      return { ok: true, data: { ...payload, _id: added._id } };
+    }
+
     return { ok: false, message: `unknown action: ${action}` };
   } catch (err) {
     return { ok: false, message: err.message || "cloud function error" };

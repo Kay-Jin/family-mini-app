@@ -2,6 +2,13 @@
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
 
+  <view class="card" wx:if="{{seniorMode}}">
+    <view class="title">长辈快捷首页</view>
+    <button class="btn-primary" bindtap="onSafeCheckIn">我很好，报平安</button>
+    <button bindtap="onHelpTap">需要帮助，请联系我</button>
+    <button bindtap="onViewFamilyDynamics">看看家人动态</button>
+  </view>
+
   <view class="card" wx:if="{{visibility.include_in_morning_brief}}">
     <view class="title">每日家庭晨报</view>
     <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
@@ -28,6 +35,24 @@
     <view wx:if="{{!checkIns.length}}" class="muted">暂无记录</view>
     <view wx:for="{{checkIns}}" wx:key="id" class="line">
       {{item.display_name}} · {{item.created_at}}
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{role !== 'senior'}}">
+    <view class="title">异常未报平安提醒</view>
+    <view class="line-row">
+      <text>启用提醒策略</text>
+      <switch checked="{{checkinPolicy.enabled}}" bindchange="onPolicyEnabledChange" />
+    </view>
+    <view class="line-row">
+      <text>触发阈值</text>
+      <picker mode="selector" range="{{['60分钟','90分钟']}}" value="{{checkinPolicy.threshold_minutes === 90 ? 1 : 0}}" bindchange="onPolicyThresholdChange">
+        <view class="picker-val">{{checkinPolicy.threshold_minutes}}分钟</view>
+      </picker>
+    </view>
+    <view wx:if="{{!checkinAlerts.length}}" class="muted">当前无异常提醒</view>
+    <view wx:for="{{checkinAlerts}}" wx:key="id" class="alert-item">
+      {{item.member_name}}：{{item.message}}
     </view>
   </view>
 </view>

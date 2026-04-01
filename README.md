@@ -71,6 +71,10 @@
 - `members`
 - `invite_codes`
 - `visibility_settings`
+- `checkin_policies`
+- `checkin_alerts`
+- `care_reminders`
+- `help_requests`
 
 ### 说明
 

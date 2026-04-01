@@ -12,4 +12,31 @@
     <view class="muted" wx:if="{{visibility.share_sleep_summary}}">睡眠：{{item.sleep_hours}}h</view>
     <view class="muted" wx:if="{{!visibility.share_step_band && !visibility.share_sleep_summary}}">该成员关闭了健康摘要共享</view>
   </view>
+
+  <view class="card">
+    <view class="title">用药/复诊提醒</view>
+    <view class="muted">支持每日用药与单次复诊提醒</view>
+    <view class="row">
+      <text>提醒类型</text>
+      <picker mode="selector" range="{{['用药提醒','复诊提醒']}}" value="{{reminderDraft.type === 'followup' ? 1 : 0}}" bindchange="onReminderTypeChange">
+        <view class="picker-val">{{reminderDraft.type === 'followup' ? '复诊提醒' : '用药提醒'}}</view>
+      </picker>
+    </view>
+    <input class="input" placeholder="提醒标题（如 早餐后降压药）" value="{{reminderDraft.title}}" bindinput="onReminderTitleInput" />
+    <input class="input" placeholder="提醒时间（如 08:00 / 2026-04-10 09:00）" value="{{reminderDraft.remind_at}}" bindinput="onReminderTimeInput" />
+    <button class="btn-primary" bindtap="onAddReminder">新增提醒</button>
+  </view>
+
+  <view class="card">
+    <view class="title">提醒列表</view>
+    <view wx:if="{{!reminders.length}}" class="muted">暂无提醒</view>
+    <view wx:for="{{reminders}}" wx:key="id" class="reminder-item">
+      <view>{{item.title}}</view>
+      <view class="muted">{{item.type === 'followup' ? '复诊' : '用药'}} · {{item.remind_at}}</view>
+      <view class="row">
+        <text>已完成</text>
+        <switch data-id="{{item.id}}" checked="{{item.status === 'done'}}" bindchange="onReminderDoneToggle" />
+      </view>
+    </view>
+  </view>
 </view>

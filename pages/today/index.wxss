@@ -1,8 +1,24 @@
 .line {
   margin-bottom: 12rpx;
-  color: #1c1b1a;
+  color: #2a221b;
 }
 
 .error {
   color: #c44d4d;
+}
+
+.line-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.picker-val {
+  color: #567a58;
+}
+
+.alert-item {
+  color: #8c6346;
+  margin-top: 8rpx;
 }

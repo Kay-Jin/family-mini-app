@@ -78,4 +78,25 @@ module.exports = {
   updateVisibility(partial) {
     return call("updateVisibility", { partial });
   },
+  getCheckinPolicy() {
+    return call("getCheckinPolicy");
+  },
+  updateCheckinPolicy(partial) {
+    return call("updateCheckinPolicy", { partial });
+  },
+  getCheckinAlerts() {
+    return call("getCheckinAlerts");
+  },
+  listCareReminders() {
+    return call("listCareReminders");
+  },
+  addCareReminder(payload) {
+    return call("addCareReminder", payload || {});
+  },
+  setCareReminderDone(id, done) {
+    return call("setCareReminderDone", { id, done });
+  },
+  createHelpRequest(type) {
+    return call("createHelpRequest", { type });
+  },
 };
