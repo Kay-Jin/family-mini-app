@@ -3,8 +3,9 @@
   <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
     <view class="title">家庭相册</view>
-    <button class="btn-primary" bindtap="onUploadTap" wx:if="{{role !== 'senior'}}">上传照片</button>
+    <button class="btn-primary" bindtap="onUploadTap" wx:if="{{role !== 'senior' && visibility.share_album_contribute}}">上传照片</button>
     <view class="muted" wx:if="{{role === 'senior'}}">长辈账号默认仅浏览，上传入口可由家人代操作。</view>
+    <view class="muted" wx:if="{{!visibility.share_album_contribute}}">当前家庭已关闭相册共建。</view>
   </view>
 
   <view class="card" wx:for="{{items}}" wx:key="id">

@@ -15,6 +15,11 @@ function createCheckIn() {
   });
 }
 
+function listCheckIns() {
+  if (USE_MOCK) return Promise.resolve(mock.getCheckIns());
+  return request(`/households/${HOUSEHOLD_ID}/check_ins?limit=20`);
+}
+
 function getHealthSnapshot() {
   if (USE_MOCK) return Promise.resolve(mock.getHealthSnapshot());
   return request(`/households/${HOUSEHOLD_ID}/health_snapshots?uid=${USER_ID}`);
@@ -46,6 +51,16 @@ function listMembers() {
   return request(`/households/${HOUSEHOLD_ID}/members`);
 }
 
+function updateMemberRole(uid, role) {
+  if (USE_MOCK) return Promise.resolve(mock.updateMemberRole(uid, role));
+  return request(`/households/${HOUSEHOLD_ID}/members/${uid}`, "PATCH", { role });
+}
+
+function createInviteCode(role) {
+  if (USE_MOCK) return Promise.resolve({ code: mock.createInviteCode(role) });
+  return request(`/households/${HOUSEHOLD_ID}/invite_codes`, "POST", { role });
+}
+
 function getVisibility() {
   if (USE_MOCK) return Promise.resolve(mock.getVisibility());
   return request(`/households/${HOUSEHOLD_ID}/settings/${USER_ID}`);
@@ -59,10 +74,13 @@ function updateVisibility(partial) {
 module.exports = {
   getMorningBrief,
   createCheckIn,
+  listCheckIns,
   getHealthSnapshot,
   listAlbum,
   addAlbumPhoto,
   listMembers,
+  updateMemberRole,
+  createInviteCode,
   getVisibility,
   updateVisibility,
 };

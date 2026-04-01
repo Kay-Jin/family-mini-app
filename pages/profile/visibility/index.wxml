@@ -19,5 +19,13 @@
       <text>分享最近报平安时间</text>
       <switch data-key="share_last_checkin_time" checked="{{form.share_last_checkin_time}}" bindchange="onToggle" />
     </view>
+    <view class="item">
+      <text>允许相册共建</text>
+      <switch data-key="share_album_contribute" checked="{{form.share_album_contribute}}" bindchange="onToggle" />
+    </view>
+    <view class="item">
+      <text>加入晨报摘要</text>
+      <switch data-key="include_in_morning_brief" checked="{{form.include_in_morning_brief}}" bindchange="onToggle" />
+    </view>
   </view>
 </view>

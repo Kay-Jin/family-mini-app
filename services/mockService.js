@@ -12,6 +12,11 @@ const mockVisibility = {
   include_in_morning_brief: true,
 };
 
+const checkInHistory = [
+  { id: "c1", user_uid: "u2", display_name: "奶奶", created_at: "今天 07:58" },
+  { id: "c2", user_uid: "u1", display_name: "爸爸", created_at: "今天 08:15" },
+];
+
 function getMorningBrief() {
   return {
     date: "2026-04-01",
@@ -24,7 +29,17 @@ function getMorningBrief() {
 }
 
 function createCheckIn() {
-  return { success: true, created_at: Date.now() };
+  const now = new Date();
+  const hh = `${now.getHours()}`.padStart(2, "0");
+  const mm = `${now.getMinutes()}`.padStart(2, "0");
+  const item = {
+    id: `c-${Date.now()}`,
+    user_uid: "u1",
+    display_name: "我",
+    created_at: `今天 ${hh}:${mm}`,
+  };
+  checkInHistory.unshift(item);
+  return { success: true, created_at: Date.now(), latest: item };
 }
 
 function getHealthSnapshot() {
@@ -59,7 +74,23 @@ function addAlbumPhoto(payload) {
 }
 
 function listMembers() {
-  return mockMembers;
+  return mockMembers.map((m) => ({ ...m }));
+}
+
+function updateMemberRole(uid, role) {
+  const target = mockMembers.find((m) => m.uid === uid);
+  if (!target) throw new Error("member not found");
+  target.role = role || "adult";
+  return { ...target };
+}
+
+function getCheckIns() {
+  return [...checkInHistory];
+}
+
+function createInviteCode(role) {
+  const prefix = role === "senior" ? "SEN" : "ADU";
+  return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
 function updateVisibility(partial) {
@@ -78,6 +109,9 @@ module.exports = {
   listAlbum,
   addAlbumPhoto,
   listMembers,
+  updateMemberRole,
+  getCheckIns,
+  createInviteCode,
   getVisibility,
   updateVisibility,
 };

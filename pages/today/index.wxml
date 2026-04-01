@@ -2,7 +2,7 @@
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
 
-  <view class="card">
+  <view class="card" wx:if="{{visibility.include_in_morning_brief}}">
     <view class="title">每日家庭晨报</view>
     <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
   </view>
@@ -15,10 +15,18 @@
     <view class="muted" wx:if="{{role === 'senior'}}">长辈模式下仅保留核心操作与简洁提示。</view>
   </view>
 
-  <view class="card" wx:if="{{brief}}">
+  <view class="card" wx:if="{{brief && visibility.include_in_morning_brief}}">
     <view class="title">成员摘要</view>
     <view wx:for="{{brief.member_snippets}}" wx:key="uid" class="line">
       {{item.display_name}}：{{item.note}}
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{visibility.share_last_checkin_time}}">
+    <view class="title">最近报平安</view>
+    <view wx:if="{{!checkIns.length}}" class="muted">暂无记录</view>
+    <view wx:for="{{checkIns}}" wx:key="id" class="line">
+      {{item.display_name}} · {{item.created_at}}
     </view>
   </view>
 </view>

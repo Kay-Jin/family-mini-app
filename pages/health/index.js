@@ -3,6 +3,10 @@ const service = require("../../services/familyService");
 Page({
   data: {
     snapshots: [],
+    visibility: {
+      share_step_band: true,
+      share_sleep_summary: true,
+    },
     loading: false,
     error: "",
   },
@@ -19,8 +23,11 @@ Page({
   async loadData() {
     this.setData({ loading: true, error: "" });
     try {
-      const snapshots = await service.getHealthSnapshot();
-      this.setData({ snapshots, loading: false });
+      const [snapshots, visibility] = await Promise.all([
+        service.getHealthSnapshot(),
+        service.getVisibility(),
+      ]);
+      this.setData({ snapshots, visibility, loading: false });
     } catch (err) {
       this.setData({
         loading: false,

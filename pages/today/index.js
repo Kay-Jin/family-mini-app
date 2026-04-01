@@ -4,6 +4,11 @@ const { getSeniorMode, getUserRole } = require("../../utils/storage");
 Page({
   data: {
     brief: null,
+    checkIns: [],
+    visibility: {
+      include_in_morning_brief: true,
+      share_last_checkin_time: true,
+    },
     loading: false,
     error: "",
     seniorMode: false,
@@ -26,8 +31,12 @@ Page({
   async loadData(isRefresh) {
     this.setData({ loading: !isRefresh, error: "" });
     try {
-      const brief = await service.getMorningBrief();
-      this.setData({ brief, loading: false });
+      const [brief, checkIns, visibility] = await Promise.all([
+        service.getMorningBrief(),
+        service.listCheckIns(),
+        service.getVisibility(),
+      ]);
+      this.setData({ brief, checkIns, visibility, loading: false });
     } catch (err) {
       this.setData({
         loading: false,

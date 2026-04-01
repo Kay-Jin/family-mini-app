@@ -1,8 +1,27 @@
 <view class="container">
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
+  <view class="card">
+    <view class="title">生成邀请码</view>
+    <radio-group bindchange="onInviteRoleChange">
+      <label class="role-item">
+        <radio value="adult" checked="{{inviteRole === 'adult'}}" />
+        <text>成年人</text>
+      </label>
+      <label class="role-item">
+        <radio value="senior" checked="{{inviteRole === 'senior'}}" />
+        <text>长辈</text>
+      </label>
+    </radio-group>
+    <button class="btn-primary" bindtap="onCreateInviteCode">生成邀请码</button>
+    <view wx:if="{{inviteCode}}" class="muted">邀请码：{{inviteCode}}</view>
+  </view>
+
   <view class="card" wx:for="{{members}}" wx:key="uid">
     <view>{{item.display_name}}</view>
     <view class="muted">角色：{{item.role}}</view>
+    <picker data-uid="{{item.uid}}" mode="selector" range="{{roleRange}}" bindchange="onMemberRoleChange" value="{{item.role === 'senior' ? 1 : 0}}">
+      <view class="picker">调整角色（当前 {{item.role}}）</view>
+    </picker>
   </view>
 </view>

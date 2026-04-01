@@ -3,6 +3,9 @@ const service = require("../../../services/familyService");
 Page({
   data: {
     members: [],
+    roleRange: ["adult", "senior"],
+    inviteRole: "adult",
+    inviteCode: "",
     loading: false,
     error: "",
   },
@@ -26,6 +29,32 @@ Page({
         loading: false,
         error: err.message || "加载失败",
       });
+    }
+  },
+
+  async onMemberRoleChange(e) {
+    const uid = e.currentTarget.dataset.uid;
+    const role = `${e.detail.value}` === "1" ? "senior" : "adult";
+    try {
+      await service.updateMemberRole(uid, role);
+      wx.showToast({ title: "角色已更新", icon: "success" });
+      await this.loadData();
+    } catch (err) {
+      wx.showToast({ title: err.message || "更新失败", icon: "none" });
+    }
+  },
+
+  onInviteRoleChange(e) {
+    this.setData({ inviteRole: e.detail.value || "adult" });
+  },
+
+  async onCreateInviteCode() {
+    try {
+      const result = await service.createInviteCode(this.data.inviteRole);
+      this.setData({ inviteCode: result.code || "" });
+      wx.showToast({ title: "邀请码已生成", icon: "success" });
+    } catch (err) {
+      wx.showToast({ title: err.message || "生成失败", icon: "none" });
     }
   },
 });

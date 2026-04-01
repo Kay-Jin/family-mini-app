@@ -5,9 +5,9 @@
 ## 已实现（对齐需求 F-M1 ~ F-M5）
 
 - F-M1 `pages/today/index`：每日家庭晨报 + 一键报平安
-- F-M2 `pages/today/index`：报平安交互（MVP 采用 Mock 持久层）
+- F-M2 `pages/today/index`：报平安交互 + 最近记录列表
 - F-M3 `pages/health/index`：健康数据看板（步数/睡眠）
-- F-M4 `pages/memories/index`：家庭相册列表与上传入口占位
+- F-M4 `pages/memories/index`：家庭相册列表 + 选图上传
 - F-M5 `pages/profile/index`：家账号与权限入口 + 长辈模式开关
 ## 本轮增强
 
@@ -15,6 +15,9 @@
 - 页面接入角色模拟（adult / senior），用于演示差异化交互
 - senior 角色在相册页默认仅浏览，today 页显示简化提示
 - 上传与数据读取均通过 `services/familyService.js` 统一封装
+- 今日页接入可见性策略（晨报展示、报平安记录展示）
+- 健康页接入可见性策略（步数/睡眠可单独隐藏）
+- 家庭管理页支持成员角色调整与邀请码生成（MVP）
 
 - 子页面：
   - `pages/profile/household/index` 家庭组织与角色

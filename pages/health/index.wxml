@@ -8,6 +8,8 @@
 
   <view class="card" wx:for="{{snapshots}}" wx:key="date">
     <view>{{item.date}}</view>
-    <view class="muted">步数：{{item.steps}}，睡眠：{{item.sleep_hours}}h</view>
+    <view class="muted" wx:if="{{visibility.share_step_band}}">步数：{{item.steps}}</view>
+    <view class="muted" wx:if="{{visibility.share_sleep_summary}}">睡眠：{{item.sleep_hours}}h</view>
+    <view class="muted" wx:if="{{!visibility.share_step_band && !visibility.share_sleep_summary}}">该成员关闭了健康摘要共享</view>
   </view>
 </view>

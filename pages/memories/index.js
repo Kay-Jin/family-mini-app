@@ -4,6 +4,9 @@ const { getUserRole } = require("../../utils/storage");
 Page({
   data: {
     items: [],
+    visibility: {
+      share_album_contribute: true,
+    },
     loading: false,
     error: "",
     role: "adult",
@@ -22,8 +25,11 @@ Page({
   async loadData() {
     this.setData({ loading: true, error: "" });
     try {
-      const items = await service.listAlbum();
-      this.setData({ items, loading: false });
+      const [items, visibility] = await Promise.all([
+        service.listAlbum(),
+        service.getVisibility(),
+      ]);
+      this.setData({ items, visibility, loading: false });
     } catch (err) {
       this.setData({
         loading: false,
@@ -33,6 +39,10 @@ Page({
   },
 
   async onUploadTap() {
+    if (!this.data.visibility.share_album_contribute) {
+      wx.showToast({ title: "当前家庭关闭了相册共建", icon: "none" });
+      return;
+    }
     try {
       const chooseRes = await new Promise((resolve, reject) => {
         wx.chooseMedia({
