@@ -93,6 +93,7 @@
 - 所有业务操作通过云函数 `family` 的 `action` 分发处理
 - `openid` 由云函数侧获取并用于写入/鉴权基础字段
 - **Onboarding**：`getOrCreateUser` / `createHousehold` / `joinHousehold`；「我的」在 CloudBase 模式下可 **退出当前家庭**（`leaveHousehold`）
+- **代码结构**：业务 API 入口统一在 `familyService`；云函数 RPC 解包在 `familyCloudClient`（避免 `auth`/`cloud` 各写一套）
 
 ## 下一步建议
 

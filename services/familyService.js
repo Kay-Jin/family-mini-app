@@ -1,6 +1,12 @@
-const { getBackendMode, getHouseholdId, getUserId } = require("./apiConfig");
+const {
+  getBackendMode,
+  getHouseholdId,
+  getUserId,
+  setHouseholdId,
+} = require("./apiConfig");
 const mock = require("./mockService");
 const cloud = require("./cloudService");
+const auth = require("./authService");
 const { request, uploadFile } = require("./http");
 
 function getMorningBrief() {
@@ -105,13 +111,11 @@ async function dissolveHousehold() {
     return;
   }
   if (mode === "cloudbase") {
-    const auth = require("./authService");
     await auth.dissolveHouseholdCloud();
     return;
   }
   await request(`/households/${getHouseholdId()}/dissolve`, "POST", {});
-  const api = require("./apiConfig");
-  api.setHouseholdId("");
+  setHouseholdId("");
 }
 
 function listInviteCodes() {
