@@ -129,6 +129,12 @@ Page({
 
   tourEat() {},
 
+  onResetTours() {
+    tour.resetAllTours();
+    this.setData({ showTour: !tour.hasSeenTour("profile") });
+    wx.showToast({ title: "已重置，切换 Tab 可再看引导", icon: "none" });
+  },
+
   onBackendModeChange(e) {
     const mode = e.detail.value || "mock";
     setBackendMode(mode);

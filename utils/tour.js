@@ -19,7 +19,19 @@ function markTourSeen(pageId) {
   } catch (e) {}
 }
 
+const PAGE_IDS = ["today", "health", "memories", "profile"];
+
+/** 清除全部 Tab 引导标记（仅本机演示 / 验收用） */
+function resetAllTours() {
+  PAGE_IDS.forEach((id) => {
+    try {
+      wx.removeStorageSync(key(id));
+    } catch (e) {}
+  });
+}
+
 module.exports = {
   hasSeenTour,
   markTourSeen,
+  resetAllTours,
 };

@@ -56,6 +56,7 @@
         bindinput="onSubscribeTmplInput"
       />
       <button class="btn-primary" bindtap="onSaveApiConfig">保存接口配置</button>
+      <button class="btn-secondary" bindtap="onResetTours">重新显示各 Tab 新手引导（仅本机）</button>
     </view>
   </block>
 

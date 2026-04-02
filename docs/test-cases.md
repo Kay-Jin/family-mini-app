@@ -98,6 +98,7 @@
 | TC-STB-004 | Pull refresh across all data pages | Any | Repeated pull refresh | No memory leak symptoms / freeze |
 | TC-STB-005 | Error then recovery | ENV-C then A | Fail a request then fix config | App recovers without reinstall |
 | TC-STB-006 | First-run tab tour | 清除本地 key `ui_tour_v1_*` 或首次安装 | 依次打开四个 Tab | 各 Tab 底部出现一次引导，点「知道了」或点遮罩关闭后不再出现 |
+| TC-STB-007 | Reset tab tour | ENV-A，「我的」展开高级与调试 | 点「重新显示各 Tab 新手引导」后切换到其它 Tab | 对应 Tab 再次出现引导卡片 |
 
 ### 3.7 Onboarding & Cloud identity
 
