@@ -136,6 +136,18 @@ function createInviteCode(role, maxUses) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function getHouseholdSummary() {
+  return { name: "演示家庭", createdBy: "u1", dissolvedAt: null };
+}
+
+function revokeInviteCode() {
+  return { code: "MOCK-REVOKED" };
+}
+
+function dissolveHousehold() {
+  return { householdId: null };
+}
+
 function getCheckinPolicy() {
   return { ...checkInPolicy };
 }
@@ -211,6 +223,9 @@ module.exports = {
   updateMemberRole,
   getCheckIns,
   createInviteCode,
+  getHouseholdSummary,
+  revokeInviteCode,
+  dissolveHousehold,
   getCheckinPolicy,
   updateCheckinPolicy,
   getCheckinAlerts,

@@ -77,7 +77,41 @@ function createInviteCode(role, maxUses) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve({ code: mock.createInviteCode(role, maxUses) });
   if (mode === "cloudbase") return cloud.createInviteCode(role, maxUses);
-  return request(`/households/${getHouseholdId()}/invite_codes`, "POST", { role, max_uses: maxUses });
+  return request(`/households/${getHouseholdId()}/invite_codes`, "POST", {
+    role,
+    max_uses: maxUses,
+    maxUses,
+  });
+}
+
+function getHouseholdSummary() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.getHouseholdSummary());
+  if (mode === "cloudbase") return cloud.getHouseholdSummary();
+  return request(`/households/${getHouseholdId()}/summary`);
+}
+
+function revokeInviteCode(code) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.revokeInviteCode(code));
+  if (mode === "cloudbase") return cloud.revokeInviteCode(code);
+  return request(`/households/${getHouseholdId()}/invite_codes/revoke`, "POST", { code });
+}
+
+async function dissolveHousehold() {
+  const mode = getBackendMode();
+  if (mode === "mock") {
+    await Promise.resolve(mock.dissolveHousehold());
+    return;
+  }
+  if (mode === "cloudbase") {
+    const auth = require("./authService");
+    await auth.dissolveHouseholdCloud();
+    return;
+  }
+  await request(`/households/${getHouseholdId()}/dissolve`, "POST", {});
+  const api = require("./apiConfig");
+  api.setHouseholdId("");
 }
 
 function getVisibility() {
@@ -153,6 +187,9 @@ module.exports = {
   listMembers,
   updateMemberRole,
   createInviteCode,
+  getHouseholdSummary,
+  revokeInviteCode,
+  dissolveHousehold,
   getVisibility,
   updateVisibility,
   getCheckinPolicy,

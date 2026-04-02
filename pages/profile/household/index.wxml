@@ -25,6 +25,24 @@
     <button wx:if="{{inviteCode}}" bindtap="onCopyInviteCode">复制邀请码</button>
   </view>
 
+  <view class="card">
+    <view class="title">作废邀请码</view>
+    <view class="muted">仅创建该码的用户可操作；作废后他人无法用该码加入。</view>
+    <input
+      class="input-like"
+      placeholder="完整邀请码"
+      value="{{revokeCode}}"
+      bindinput="onRevokeCodeInput"
+    />
+    <button class="btn-primary" bindtap="onRevokeInvite">作废该邀请码</button>
+  </view>
+
+  <view class="card danger-zone" wx:if="{{isHouseholdCreator}}">
+    <view class="title">危险操作</view>
+    <view class="muted">你是当前家庭的创建者，可以解散整个家庭。</view>
+    <button class="btn-dissolve" bindtap="onDissolveHousehold">解散家庭</button>
+  </view>
+
   <view class="card" wx:for="{{members}}" wx:key="uid">
     <view>{{item.display_name}}</view>
     <view class="muted">角色：{{item.role}}</view>

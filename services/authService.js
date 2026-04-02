@@ -110,6 +110,26 @@ async function leaveHouseholdCloud() {
   }
 }
 
+/** 解散当前家庭（仅创建者）；同步本地活跃家庭或清空 */
+async function dissolveHouseholdCloud() {
+  const hid = api.getHouseholdId();
+  if (!hid) throw new Error("当前未选择家庭");
+  await wxLogin();
+  await callFamily({ action: "dissolveHousehold", householdId: hid });
+  const profile = await callFamily({
+    action: "getOrCreateUser",
+    activeHouseholdId: "",
+  });
+  if (profile.householdId) persistProfile(profile);
+  else {
+    api.setHouseholdId("");
+    try {
+      const app = getApp();
+      if (app && app.globalData) app.globalData.householdId = "";
+    } catch (e) {}
+  }
+}
+
 module.exports = {
   wxLogin,
   callFamily,
@@ -119,4 +139,5 @@ module.exports = {
   joinHouseholdCloud,
   bootstrapCloudbase,
   leaveHouseholdCloud,
+  dissolveHouseholdCloud,
 };

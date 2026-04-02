@@ -149,6 +149,18 @@ async function getDisplayNameForHousehold(openid, householdId) {
   return "成员";
 }
 
+async function assertHouseholdActive(hid) {
+  if (!hid) return { ok: false, message: "householdId is required" };
+  try {
+    const h = await db.collection("households").doc(hid).get();
+    if (!h.data) return { ok: false, message: "家庭不存在" };
+    if (h.data.dissolvedAt) return { ok: false, message: "家庭已解散" };
+  } catch (e) {
+    return { ok: false, message: "家庭不存在" };
+  }
+  return null;
+}
+
 /**
  * 可选集合 `family_audit_logs`。
  * 默认：写失败仅打云日志，不阻断业务。
@@ -323,8 +335,13 @@ exports.main = async (event) => {
           message: maxUses === 1 ? "邀请码已使用" : "邀请码已达使用上限",
         };
       }
+      if (inv.revokedAt) return { ok: false, message: "邀请码已作废" };
 
       const hid = inv.householdId;
+      const hh = await db.collection("households").doc(hid).get();
+      if (!hh.data || hh.data.dissolvedAt) {
+        return { ok: false, message: "家庭已解散或不存在" };
+      }
       const joinRole = inv.role === "senior" ? "senior" : "adult";
       const incomingName = (event.display_name && String(event.display_name).trim()) || "";
 
@@ -434,6 +451,84 @@ exports.main = async (event) => {
     }
 
     if (!householdId) return { ok: false, message: "householdId is required" };
+
+    if (action === "getHouseholdSummary") {
+      const h = await db.collection("households").doc(householdId).get();
+      if (!h.data) return { ok: false, message: "家庭不存在" };
+      const mem = await db
+        .collection("household_members")
+        .where({ householdId, openid: OPENID })
+        .limit(1)
+        .get();
+      if (!mem.data.length) return { ok: false, message: "无权查看" };
+      return {
+        ok: true,
+        data: {
+          name: h.data.name || "",
+          createdBy: h.data.createdBy || "",
+          dissolvedAt: h.data.dissolvedAt || null,
+        },
+      };
+    }
+
+    if (action === "dissolveHousehold") {
+      if (!(await bumpRateLimit(OPENID, "dissolveHousehold", 4))) {
+        return { ok: false, message: "操作过于频繁，请稍后再试" };
+      }
+      const h = await db.collection("households").doc(householdId).get();
+      if (!h.data) return { ok: false, message: "家庭不存在" };
+      if (h.data.dissolvedAt) return { ok: false, message: "家庭已解散" };
+      if (h.data.createdBy !== OPENID) {
+        return { ok: false, message: "仅家庭创建者可解散" };
+      }
+      const membersInHouse = await db.collection("household_members").where({ householdId }).get();
+      const openids = [...new Set(membersInHouse.data.map((m) => m.openid))];
+      for (const m of membersInHouse.data) {
+        await db.collection("household_members").doc(m._id).remove();
+      }
+      for (const oid of openids) {
+        const remaining = await listHouseholdMemberships(oid);
+        const nextHid = remaining.length ? remaining[0].householdId : null;
+        await db.collection("members").where({ openid: oid }).update({
+          data: { householdId: nextHid, updatedAt: new Date() },
+        });
+      }
+      await db.collection("households").doc(householdId).update({
+        data: {
+          dissolvedAt: new Date(),
+          dissolvedBy: OPENID,
+        },
+      });
+      await tryAudit(OPENID, "dissolveHousehold", householdId, { memberCount: openids.length });
+      return { ok: true, data: { householdId } };
+    }
+
+    const householdGone = await assertHouseholdActive(householdId);
+    if (householdGone) return householdGone;
+
+    if (action === "revokeInviteCode") {
+      const code = `${event.code || event.inviteCode || ""}`.trim().toUpperCase();
+      if (!code) return { ok: false, message: "请填写邀请码" };
+      const rows = await db.collection("invite_codes").where({ code }).limit(1).get();
+      if (!rows.data.length) return { ok: false, message: "邀请码不存在" };
+      const inv = rows.data[0];
+      if (inv.householdId !== householdId) return { ok: false, message: "无权作废该邀请码" };
+      if (inv.createdBy !== OPENID) {
+        return { ok: false, message: "仅邀请码创建者可作废" };
+      }
+      if (inv.revokedAt) return { ok: false, message: "邀请码已作废" };
+      const cap = inv.maxUses != null && Number(inv.maxUses) > 0 ? Number(inv.maxUses) : 1;
+      await db.collection("invite_codes").doc(inv._id).update({
+        data: {
+          revokedAt: new Date(),
+          usedCount: cap,
+        },
+      });
+      await tryAudit(OPENID, "revokeInviteCode", householdId, {
+        codeSuffix: code.length > 4 ? code.slice(-4) : code,
+      });
+      return { ok: true, data: { code } };
+    }
 
     if (action === "getMorningBrief") {
       const records = await db

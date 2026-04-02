@@ -1,4 +1,5 @@
 const service = require("../../../services/familyService");
+const api = require("../../../services/apiConfig");
 const { getSeniorMode } = require("../../../utils/storage");
 const { ensureHouseholdForCloudbase } = require("../../../utils/routeGuard");
 
@@ -9,6 +10,9 @@ Page({
     inviteRole: "adult",
     inviteMaxUses: 1,
     inviteCode: "",
+    revokeCode: "",
+    summary: null,
+    isHouseholdCreator: false,
     loading: false,
     error: "",
     seniorMode: false,
@@ -28,14 +32,69 @@ Page({
   async loadData() {
     this.setData({ loading: true, error: "" });
     try {
-      const members = await service.listMembers();
-      this.setData({ members, loading: false });
+      const [members, summary] = await Promise.all([
+        service.listMembers(),
+        service.getHouseholdSummary().catch(() => null),
+      ]);
+      const isHouseholdCreator =
+        summary && summary.createdBy && summary.createdBy === api.getUserId();
+      this.setData({
+        members,
+        summary,
+        isHouseholdCreator: !!isHouseholdCreator,
+        loading: false,
+      });
     } catch (err) {
       this.setData({
         loading: false,
         error: err.message || "加载失败",
       });
     }
+  },
+
+  onRevokeCodeInput(e) {
+    this.setData({ revokeCode: e.detail.value || "" });
+  },
+
+  async onRevokeInvite() {
+    const code = (this.data.revokeCode || "").trim().toUpperCase();
+    if (!code) {
+      wx.showToast({ title: "请输入要作废的邀请码", icon: "none" });
+      return;
+    }
+    try {
+      await service.revokeInviteCode(code);
+      wx.showToast({ title: "已作废", icon: "success" });
+      this.setData({ revokeCode: "" });
+    } catch (err) {
+      wx.showToast({ title: err.message || "作废失败", icon: "none" });
+    }
+  },
+
+  onDissolveHousehold() {
+    wx.showModal({
+      title: "解散家庭",
+      content:
+        "你是家庭创建者。解散后所有成员将移出该家庭；若你还有其他家庭将自动切换，否则需重新加入或创建。此操作不可撤销，是否继续？",
+      confirmText: "解散",
+      success: async (res) => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: "处理中" });
+        try {
+          await service.dissolveHousehold();
+          wx.hideLoading();
+          if (api.getHouseholdId()) {
+            wx.showToast({ title: "已解散", icon: "success" });
+            await this.loadData();
+          } else {
+            wx.reLaunch({ url: "/pages/onboarding/index" });
+          }
+        } catch (err) {
+          wx.hideLoading();
+          wx.showToast({ title: err.message || "操作失败", icon: "none" });
+        }
+      },
+    });
   },
 
   async onMemberRoleChange(e) {

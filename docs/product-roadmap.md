@@ -5,8 +5,8 @@
 ## P1 — 与「家」强相关
 
 - **家庭成员资料**：在云侧可编辑 `display_name`、头像占位；与本地 `storage` 同步策略写清。
-- **家庭设置页**：家庭名称修改、解散家庭（仅创建者？需风控与二次确认）。
-- **邀请管理**：列表展示未过期邀请码、剩余次数、支持主动作废（写 `revokedAt`）。
+- **家庭设置页**：家庭名称修改；**解散家庭、邀请码作废** 已在云函数 + `pages/profile/household` 落地（创建者/码创建者校验）。
+- **邀请管理（增强）**：列表展示未过期邀请码、剩余次数（当前为手动输入码作废，可再做大屏列表）。
 
 ## P2 — 体验与留存
 
@@ -21,14 +21,9 @@
 - 与自建后端对齐 **路径与字段**：`household_id`、`user_uid`、`max_uses` 等（见下方「接口备注」）。
 - **鉴权**：`Authorization` 与 refresh 策略；小程序端仅存 token 不落明文密码。
 
-### HTTP 接口备注（草案，非实现）
+### HTTP 接口（与前端已对齐部分）
 
-| 能力 | 方法 | 路径示例 | 备注 |
-|------|------|-----------|------|
-| 创建邀请码 | POST | `/households/:id/invite_codes` | Body: `{ role, max_uses }` |
-| 加入家庭 | POST | `/households/join` | Body: `{ code, display_name }`（若后端需要） |
-
-具体以你们后端契约为准；前端 `familyService.js` 需在 `http` 分支补齐字段。
+详见 **`docs/http-api-contract.md`**（`max_uses` + `maxUses`、作废邀请码、家庭摘要、解散）。
 
 ## P4 — 合规与扩展
 

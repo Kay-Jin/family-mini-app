@@ -99,4 +99,13 @@ module.exports = {
   createHelpRequest(type) {
     return call("createHelpRequest", { type });
   },
+  getHouseholdSummary() {
+    return call("getHouseholdSummary");
+  },
+  revokeInviteCode(code) {
+    return call("revokeInviteCode", { code });
+  },
+  dissolveHousehold() {
+    return call("dissolveHousehold");
+  },
 };
