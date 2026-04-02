@@ -34,6 +34,7 @@
 - `services/http.js`：统一请求封装
 - `services/apiConfig.js`：接口环境配置（`backend_mode`、`API_BASE_URL`、`getHouseholdId`/`MOCK_HOUSEHOLD_ID`）
 - `services/authService.js`：CloudBase 下 `wx.login`、getOrCreateUser / 创建或加入家庭
+- `services/familyCloudClient.js`：统一封装 `family` 云函数调用与 `{ ok, data }` 解包（避免重复逻辑及 `data` 为假值时误判）
 - `utils/tokens.js`：设计 Token（颜色/间距）
 - `utils/storage.js`：长辈模式本地持久化
 

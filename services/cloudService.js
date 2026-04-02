@@ -1,27 +1,8 @@
 const { getHouseholdId } = require("./apiConfig");
+const { callFamilyAuthed } = require("./familyCloudClient");
 
 function call(action, payload) {
-  return new Promise((resolve, reject) => {
-    wx.cloud.callFunction({
-      name: "family",
-      data: {
-        action,
-        householdId: getHouseholdId(),
-        ...(payload || {}),
-      },
-      success(res) {
-        const data = res.result || {};
-        if (data && data.ok === false) {
-          reject(new Error(data.message || "cloud function failed"));
-          return;
-        }
-        resolve(data.data || data);
-      },
-      fail(err) {
-        reject(new Error(err.errMsg || "cloud call failed"));
-      },
-    });
-  });
+  return callFamilyAuthed(action, payload);
 }
 
 function uploadToCloud(localPath) {

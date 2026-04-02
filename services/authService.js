@@ -1,5 +1,6 @@
 const api = require("./apiConfig");
 const storage = require("../utils/storage");
+const { callFamilyRaw } = require("./familyCloudClient");
 
 function wxLogin() {
   return new Promise((resolve, reject) => {
@@ -9,30 +10,6 @@ function wxLogin() {
         else reject(new Error("wx.login 未返回 code"));
       },
       fail: reject,
-    });
-  });
-}
-
-/**
- * 调用 family 云函数（可不带 householdId，用于 onboarding）
- * @param {Record<string, unknown>} payload
- */
-function callFamily(payload) {
-  return new Promise((resolve, reject) => {
-    wx.cloud.callFunction({
-      name: "family",
-      data: payload,
-      success(res) {
-        const result = res.result || {};
-        if (result.ok === false) {
-          reject(new Error(result.message || "云函数调用失败"));
-          return;
-        }
-        resolve(result.data !== undefined ? result.data : result);
-      },
-      fail(err) {
-        reject(new Error(err.errMsg || "云函数调用失败"));
-      },
     });
   });
 }
@@ -47,7 +24,7 @@ function persistProfile(profile) {
 
 async function getOrCreateUserCloud() {
   await wxLogin();
-  return callFamily({
+  return callFamilyRaw({
     action: "getOrCreateUser",
     activeHouseholdId: api.getHouseholdId() || undefined,
   });
@@ -56,7 +33,7 @@ async function getOrCreateUserCloud() {
 async function createHouseholdCloud(householdName) {
   await wxLogin();
   const clientRequestId = `ch_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
-  const data = await callFamily({
+  const data = await callFamilyRaw({
     action: "createHousehold",
     householdName: (householdName || "").trim(),
     clientRequestId,
@@ -67,7 +44,7 @@ async function createHouseholdCloud(householdName) {
 
 async function joinHouseholdCloud(inviteCode, displayName) {
   await wxLogin();
-  const data = await callFamily({
+  const data = await callFamilyRaw({
     action: "joinHousehold",
     inviteCode: (inviteCode || "").trim(),
     display_name: displayName,
@@ -95,8 +72,8 @@ async function leaveHouseholdCloud() {
   const hid = api.getHouseholdId();
   if (!hid) throw new Error("当前未选择家庭");
   await wxLogin();
-  await callFamily({ action: "leaveHousehold", householdId: hid });
-  const profile = await callFamily({
+  await callFamilyRaw({ action: "leaveHousehold", householdId: hid });
+  const profile = await callFamilyRaw({
     action: "getOrCreateUser",
     activeHouseholdId: "",
   });
@@ -115,8 +92,8 @@ async function dissolveHouseholdCloud() {
   const hid = api.getHouseholdId();
   if (!hid) throw new Error("当前未选择家庭");
   await wxLogin();
-  await callFamily({ action: "dissolveHousehold", householdId: hid });
-  const profile = await callFamily({
+  await callFamilyRaw({ action: "dissolveHousehold", householdId: hid });
+  const profile = await callFamilyRaw({
     action: "getOrCreateUser",
     activeHouseholdId: "",
   });
@@ -132,7 +109,7 @@ async function dissolveHouseholdCloud() {
 
 module.exports = {
   wxLogin,
-  callFamily,
+  callFamilyRaw,
   persistProfile,
   getOrCreateUserCloud,
   createHouseholdCloud,
