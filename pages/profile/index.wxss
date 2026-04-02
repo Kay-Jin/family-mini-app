@@ -31,3 +31,12 @@
   border-radius: 14rpx;
   min-height: 88rpx;
 }
+
+.household-row {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid rgba(42, 34, 27, 0.08);
+}
+
+.household-row:last-child {
+  border-bottom: none;
+}

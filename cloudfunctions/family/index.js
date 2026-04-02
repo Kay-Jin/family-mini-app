@@ -25,9 +25,90 @@ async function ensureVisibility(householdId, openid) {
   return fallback;
 }
 
-async function getDisplayName(openid) {
-  const memberRes = await db.collection("members").where({ openid }).limit(1).get();
+async function listHouseholdMemberships(openid) {
+  const rows = await db.collection("household_members").where({ openid }).get();
+  return rows.data;
+}
+
+async function migrateMemberDocToJoinTable(doc) {
+  if (!doc || !doc.openid || !doc.householdId) return;
+  const existing = await db
+    .collection("household_members")
+    .where({ openid: doc.openid, householdId: doc.householdId })
+    .limit(1)
+    .get();
+  if (existing.data.length) return;
+  await db.collection("household_members").add({
+    data: {
+      openid: doc.openid,
+      householdId: doc.householdId,
+      uid: doc.openid,
+      role: doc.role || "adult",
+      display_name: doc.display_name || "成员",
+      joinedAt: doc.joinedAt || new Date(),
+    },
+  });
+}
+
+function resolveActiveHouseholdId(membershipRows, activeFromClient, legacyHouseholdId) {
+  const ids = [...new Set(membershipRows.map((m) => m.householdId).filter(Boolean))];
+  if (activeFromClient && ids.includes(activeFromClient)) return activeFromClient;
+  if (legacyHouseholdId && ids.includes(legacyHouseholdId)) return legacyHouseholdId;
+  if (ids.length >= 1) return ids[0];
+  return legacyHouseholdId || null;
+}
+
+async function enrichMemberships(rows) {
+  const out = [];
+  for (const m of rows) {
+    let name = "";
+    try {
+      const h = await db.collection("households").doc(m.householdId).get();
+      name = (h.data && h.data.name) || "";
+    } catch (e) {
+      name = "";
+    }
+    out.push({
+      householdId: m.householdId,
+      role: m.role,
+      display_name: m.display_name || "成员",
+      name,
+    });
+  }
+  return out;
+}
+
+async function upsertHouseholdMember(openid, householdId, role, displayName) {
+  const existing = await db.collection("household_members").where({ openid, householdId }).limit(1).get();
+  if (existing.data.length) {
+    await db.collection("household_members").doc(existing.data[0]._id).update({
+      data: {
+        role,
+        display_name: displayName || existing.data[0].display_name || "成员",
+        uid: openid,
+        updatedAt: new Date(),
+      },
+    });
+    return;
+  }
+  await db.collection("household_members").add({
+    data: {
+      openid,
+      householdId,
+      uid: openid,
+      role: role || "adult",
+      display_name: displayName || "成员",
+      joinedAt: new Date(),
+    },
+  });
+}
+
+async function getDisplayNameForHousehold(openid, householdId) {
+  if (!householdId) return "成员";
+  const memberRes = await db.collection("household_members").where({ openid, householdId }).limit(1).get();
   if (memberRes.data.length) return memberRes.data[0].display_name || "成员";
+  const fallback = await db.collection("members").where({ openid }).limit(1).get();
+  if (fallback.data.length) return fallback.data[0].display_name || "成员";
   return "成员";
 }
 
@@ -53,13 +134,25 @@ exports.main = async (event) => {
         rows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
       }
       const doc = rows.data[0] || {};
+      await migrateMemberDocToJoinTable(doc);
+      let membershipRows = await listHouseholdMemberships(OPENID);
+      const activeFromClient = `${event.activeHouseholdId || event.active_household_id || ""}`.trim();
+      const resolvedHid = resolveActiveHouseholdId(membershipRows, activeFromClient, doc.householdId);
+      const memberships = await enrichMemberships(membershipRows);
+      const currentMb = membershipRows.find((m) => m.householdId === resolvedHid);
+      const display_name = currentMb
+        ? currentMb.display_name || doc.display_name
+        : doc.display_name || "成员";
+      const role = currentMb ? currentMb.role : doc.role || "adult";
+
       return {
         ok: true,
         data: {
           openid: OPENID,
-          display_name: doc.display_name || "成员",
-          householdId: doc.householdId || null,
-          role: doc.role || "adult",
+          display_name: display_name || "成员",
+          householdId: resolvedHid || null,
+          role,
+          memberships,
         },
       };
     }
@@ -101,6 +194,7 @@ exports.main = async (event) => {
       }
       const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
       const doc = after.data[0] || {};
+      await upsertHouseholdMember(OPENID, newHouseholdId, "adult", doc.display_name || "成员");
       return {
         ok: true,
         data: {
@@ -121,18 +215,43 @@ exports.main = async (event) => {
       const inv = inviteRows.data[0];
       const exp = inv.expiresAt ? new Date(inv.expiresAt) : null;
       if (exp && exp.getTime() < Date.now()) return { ok: false, message: "邀请码已过期" };
+      if (inv.usedAt) return { ok: false, message: "邀请码已使用" };
+
       const hid = inv.householdId;
       const joinRole = inv.role === "senior" ? "senior" : "adult";
-      const memRows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
-      if (memRows.data.length && memRows.data[0].householdId && memRows.data[0].householdId !== hid) {
-        return { ok: false, message: "已加入其他家庭，请先退出后再操作" };
+      const incomingName = (event.display_name && String(event.display_name).trim()) || "";
+
+      const already = await db
+        .collection("household_members")
+        .where({ openid: OPENID, householdId: hid })
+        .limit(1)
+        .get();
+      if (already.data.length) {
+        await db.collection("members").where({ openid: OPENID }).update({
+          data: { householdId: hid, role: joinRole, updatedAt: new Date() },
+        });
+        const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+        const doc = after.data[0] || {};
+        return {
+          ok: true,
+          data: {
+            householdId: hid,
+            openid: OPENID,
+            display_name: doc.display_name || "成员",
+            role: joinRole,
+          },
+        };
       }
+
+      const memRows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const displayName = incomingName || (memRows.data.length && memRows.data[0].display_name) || "成员";
+
       if (!memRows.data.length) {
         await db.collection("members").add({
           data: {
             openid: OPENID,
             uid: OPENID,
-            display_name: (event.display_name && String(event.display_name).trim()) || "成员",
+            display_name: displayName,
             householdId: hid,
             role: joinRole,
             joinedAt: new Date(),
@@ -144,12 +263,23 @@ exports.main = async (event) => {
           data: {
             householdId: hid,
             role: joinRole,
+            display_name: incomingName || memRows.data[0].display_name || "成员",
             uid: OPENID,
             joinedAt: new Date(),
             updatedAt: new Date(),
           },
         });
       }
+
+      await upsertHouseholdMember(OPENID, hid, joinRole, displayName);
+
+      await db.collection("invite_codes").doc(inv._id).update({
+        data: {
+          usedAt: new Date(),
+          usedByOpenid: OPENID,
+        },
+      });
+
       const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
       const doc = after.data[0] || {};
       return {
@@ -164,13 +294,30 @@ exports.main = async (event) => {
     }
 
     if (action === "leaveHousehold") {
+      const leaveHid = `${event.householdId || event.leaveHouseholdId || ""}`.trim();
+      if (!leaveHid) return { ok: false, message: "householdId is required" };
+
+      const toRemove = await db
+        .collection("household_members")
+        .where({ openid: OPENID, householdId: leaveHid })
+        .get();
+      for (const r of toRemove.data) {
+        await db.collection("household_members").doc(r._id).remove();
+      }
+
+      const remaining = await listHouseholdMemberships(OPENID);
+      const nextHid = remaining.length ? remaining[0].householdId : null;
       await db.collection("members").where({ openid: OPENID }).update({
-        data: {
-          householdId: null,
-          updatedAt: new Date(),
-        },
+        data: { householdId: nextHid, updatedAt: new Date() },
       });
-      return { ok: true, data: { openid: OPENID } };
+
+      return {
+        ok: true,
+        data: {
+          openid: OPENID,
+          nextHouseholdId: nextHid,
+        },
+      };
     }
 
     if (!householdId) return { ok: false, message: "householdId is required" };
@@ -186,7 +333,7 @@ exports.main = async (event) => {
     }
 
     if (action === "createCheckIn") {
-      const displayName = await getDisplayName(OPENID);
+      const displayName = await getDisplayNameForHousehold(OPENID, householdId);
       const payload = {
         householdId,
         openid: OPENID,
@@ -228,7 +375,7 @@ exports.main = async (event) => {
     }
 
     if (action === "addAlbumPhoto") {
-      const displayName = await getDisplayName(OPENID);
+      const displayName = await getDisplayNameForHousehold(OPENID, householdId);
       const payload = {
         householdId,
         fileID: event.fileID,
@@ -242,7 +389,7 @@ exports.main = async (event) => {
     }
 
     if (action === "listMembers") {
-      const records = await db.collection("members").where({ householdId }).get();
+      const records = await db.collection("household_members").where({ householdId }).get();
       const data = records.data.map((m) => ({
         ...m,
         uid: m.uid || m.openid,
@@ -254,7 +401,7 @@ exports.main = async (event) => {
     if (action === "updateMemberRole") {
       const uid = event.uid;
       const role = event.role;
-      await db.collection("members").where({ householdId, uid }).update({
+      await db.collection("household_members").where({ householdId, uid }).update({
         data: {
           role,
           updatedAt: new Date(),

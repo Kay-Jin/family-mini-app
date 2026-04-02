@@ -1,4 +1,10 @@
-const { getSeniorMode, setSeniorMode, getUserRole, setUserRole } = require("../../utils/storage");
+const {
+  getSeniorMode,
+  setSeniorMode,
+  getUserRole,
+  setUserRole,
+  setDisplayName,
+} = require("../../utils/storage");
 const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
 const auth = require("../../services/authService");
 const {
@@ -10,6 +16,9 @@ const {
   setCloudEnvId,
   getAuthToken,
   setAuthToken,
+  getHouseholdId,
+  setHouseholdId,
+  getUserId,
 } = require("../../services/apiConfig");
 
 Page({
@@ -29,9 +38,10 @@ Page({
     apiBaseUrl: "",
     cloudEnvId: "",
     authToken: "",
+    myHouseholds: [],
   },
 
-  onShow() {
+  async onShow() {
     if (!ensureHouseholdForCloudbase()) return;
     this.setData({
       seniorMode: getSeniorMode(),
@@ -41,6 +51,39 @@ Page({
       cloudEnvId: getCloudEnvId(),
       authToken: getAuthToken(),
     });
+    if (getBackendMode() === "cloudbase") {
+      try {
+        const p = await auth.getOrCreateUserCloud();
+        this.setData({ myHouseholds: p.memberships || [] });
+      } catch (e) {
+        this.setData({ myHouseholds: [] });
+      }
+    } else {
+      this.setData({ myHouseholds: [] });
+    }
+  },
+
+  onSwitchHousehold(e) {
+    const hid = e.currentTarget.dataset.hid;
+    if (!hid) return;
+    const item = (this.data.myHouseholds || []).find((h) => h.householdId === hid);
+    if (!item) return;
+    setHouseholdId(hid);
+    try {
+      const app = getApp();
+      if (app && app.globalData) app.globalData.householdId = hid;
+    } catch (err) {}
+    setUserRole(item.role);
+    setDisplayName(item.display_name || "");
+    auth.persistProfile({
+      householdId: hid,
+      role: item.role,
+      display_name: item.display_name,
+      openid: getUserId(),
+    });
+    this.setData({ role: item.role });
+    wx.showToast({ title: "已切换家庭", icon: "success" });
+    wx.switchTab({ url: "/pages/today/index" });
   },
 
   onSeniorSwitch(e) {
@@ -101,7 +144,7 @@ Page({
     if (getBackendMode() !== "cloudbase") return;
     wx.showModal({
       title: "退出当前家庭",
-      content: "退出后将回到「加入家庭」流程，可重新创建或凭邀请码加入。是否继续？",
+      content: "将离开当前家庭。若你还加入了其他家庭，会自动切换到剩余家庭；否则将回到「加入家庭」流程。是否继续？",
       confirmText: "退出",
       success: async (res) => {
         if (!res.confirm) return;
@@ -109,8 +152,12 @@ Page({
         try {
           await auth.leaveHouseholdCloud();
           wx.hideLoading();
-          wx.showToast({ title: "已退出", icon: "success" });
-          wx.reLaunch({ url: "/pages/onboarding/index" });
+          if (getHouseholdId()) {
+            wx.showToast({ title: "已离开该家庭", icon: "success" });
+          } else {
+            wx.showToast({ title: "已退出", icon: "success" });
+            wx.reLaunch({ url: "/pages/onboarding/index" });
+          }
         } catch (err) {
           wx.hideLoading();
           wx.showToast({ title: err.message || "操作失败", icon: "none" });

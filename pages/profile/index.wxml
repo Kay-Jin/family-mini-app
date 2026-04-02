@@ -40,6 +40,21 @@
     <view>可见性与隐私</view>
   </view>
 
+  <view class="card" wx:if="{{backendMode === 'cloudbase' && myHouseholds.length > 1}}">
+    <view class="title">切换家庭</view>
+    <view class="muted">当前已加入多个家庭，点击下方切换活跃家庭。</view>
+    <view
+      wx:for="{{myHouseholds}}"
+      wx:key="householdId"
+      class="household-row"
+      bindtap="onSwitchHousehold"
+      data-hid="{{item.householdId}}"
+    >
+      <text>{{item.name || '家庭'}}</text>
+      <text class="muted"> · {{item.role}}</text>
+    </view>
+  </view>
+
   <view class="card danger-zone" wx:if="{{backendMode === 'cloudbase'}}">
     <view class="title">家庭账号</view>
     <view class="muted">退出后需重新创建家庭或输入邀请码加入。</view>

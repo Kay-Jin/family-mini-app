@@ -47,7 +47,10 @@ function persistProfile(profile) {
 
 async function getOrCreateUserCloud() {
   await wxLogin();
-  return callFamily({ action: "getOrCreateUser" });
+  return callFamily({
+    action: "getOrCreateUser",
+    activeHouseholdId: api.getHouseholdId() || undefined,
+  });
 }
 
 async function createHouseholdCloud(householdName) {
@@ -85,11 +88,24 @@ async function bootstrapCloudbase() {
   return { hasHousehold, profile };
 }
 
-/** 退出当前家庭：云侧清空 householdId，本地清除存储 */
+/** 离开当前家庭：移除 `household_members` 中对应关系，并同步下一活跃家庭或清空 */
 async function leaveHouseholdCloud() {
+  const hid = api.getHouseholdId();
+  if (!hid) throw new Error("当前未选择家庭");
   await wxLogin();
-  await callFamily({ action: "leaveHousehold" });
-  api.setHouseholdId("");
+  await callFamily({ action: "leaveHousehold", householdId: hid });
+  const profile = await callFamily({
+    action: "getOrCreateUser",
+    activeHouseholdId: "",
+  });
+  if (profile.householdId) persistProfile(profile);
+  else {
+    api.setHouseholdId("");
+    try {
+      const app = getApp();
+      if (app && app.globalData) app.globalData.householdId = "";
+    } catch (e) {}
+  }
 }
 
 module.exports = {

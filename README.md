@@ -72,12 +72,13 @@
 ### 需要的集合（建议）
 
 - `households`（Onboarding：`name` / `createdBy` / `createdAt`）
+- `household_members`（多家庭：`openid` / `householdId` / `uid` / `display_name` / `role` / `joinedAt`；与 `members` 同步，列表成员/改角色以该集合为准）
 - `morning_briefs`
 - `check_ins`
 - `health_snapshots`
 - `album_items`
 - `members`（Onboarding / 成员：`openid`、`uid`、`display_name`、`householdId`、`role` 等）
-- `invite_codes`
+- `invite_codes`（成功加入后写入 `usedAt`、`usedByOpenid`，**邀请码一次性**）
 - `visibility_settings`
 - `checkin_policies`
 - `checkin_alerts`
@@ -95,6 +96,10 @@
 
 - 完善 CloudBase 数据权限规则（按 household 成员限制读写）
 - 增加云函数/消息订阅用于晨报推送
+
+## 数据库权限（草稿）
+
+- 见 `docs/cloud-database-rules.md`（内测/MVP 规则示例与上线检查项）
 
 ## 测试文档
 
