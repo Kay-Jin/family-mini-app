@@ -55,9 +55,11 @@ async function getOrCreateUserCloud() {
 
 async function createHouseholdCloud(householdName) {
   await wxLogin();
+  const clientRequestId = `ch_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
   const data = await callFamily({
     action: "createHousehold",
     householdName: (householdName || "").trim(),
+    clientRequestId,
   });
   persistProfile(data);
   return data;

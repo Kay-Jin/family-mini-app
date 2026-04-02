@@ -3,6 +3,40 @@ const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
+function isAuditStrict() {
+  return process.env.AUDIT_FAIL_STRICT === "1" || process.env.AUDIT_FAIL_STRICT === "true";
+}
+
+function isRateLimitEnabled() {
+  return process.env.DISABLE_RATE_LIMIT !== "1" && process.env.DISABLE_RATE_LIMIT !== "true";
+}
+
+/** 按 openid + 分钟桶计数；集合 `family_rate_limit` 可选，失败则放行（fail-open） */
+async function bumpRateLimit(openid, bucketPrefix, limitPerMinute) {
+  if (!isRateLimitEnabled() || !openid || !limitPerMinute) return true;
+  const windowMin = Math.floor(Date.now() / 60000);
+  const rawId = `${bucketPrefix}_${openid}_${windowMin}`;
+  const docId = rawId.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 90);
+  const _ = db.command;
+  try {
+    const col = db.collection("family_rate_limit");
+    const doc = await col.doc(docId).get();
+    if (!doc.data) {
+      await col.doc(docId).set({ data: { n: 1, at: new Date() } });
+      return true;
+    }
+    if (doc.data.n >= limitPerMinute) {
+      console.warn("[family_rate_limit]", bucketPrefix, doc.data.n);
+      return false;
+    }
+    await col.doc(docId).update({ data: { n: _.inc(1), at: new Date() } });
+    return true;
+  } catch (e) {
+    console.error("[family_rate_limit_error]", bucketPrefix, e && e.message);
+    return true;
+  }
+}
+
 async function ensureVisibility(householdId, openid) {
   const setting = await db
     .collection("visibility_settings")
@@ -115,7 +149,11 @@ async function getDisplayNameForHousehold(openid, householdId) {
   return "成员";
 }
 
-/** 可选集合 `family_audit_logs`；不存在或权限不足时不影响主流程 */
+/**
+ * 可选集合 `family_audit_logs`。
+ * 默认：写失败仅打云日志，不阻断业务。
+ * 严格：云函数环境变量 `AUDIT_FAIL_STRICT=1` 时，写审计失败会抛错并中断当前请求。
+ */
 async function tryAudit(openid, actionName, hid, meta) {
   try {
     await db.collection("family_audit_logs").add({
@@ -128,7 +166,11 @@ async function tryAudit(openid, actionName, hid, meta) {
       },
     });
   } catch (e) {
-    /* ignore */
+    const msg = (e && e.message) || String(e);
+    console.error("[family_audit_failed]", actionName, msg);
+    if (isAuditStrict()) {
+      throw new Error(`AUDIT_WRITE_FAILED: ${msg}`);
+    }
   }
 }
 
@@ -178,6 +220,24 @@ exports.main = async (event) => {
     }
 
     if (action === "createHousehold") {
+      if (!(await bumpRateLimit(OPENID, "createHousehold", 8))) {
+        return { ok: false, message: "操作过于频繁，请稍后再试" };
+      }
+      const reqId = `${event.clientRequestId || ""}`.trim().slice(0, 80);
+      let idemKey = null;
+      if (reqId) {
+        idemKey = `createHH_${OPENID}_${reqId}`.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 90);
+      }
+      if (idemKey) {
+        try {
+          const prev = await db.collection("family_idempotency").doc(idemKey).get();
+          if (prev.data && prev.data.result && prev.data.result.ok) {
+            return prev.data.result;
+          }
+        } catch (e) {
+          console.error("[idempotency_read]", e && e.message);
+        }
+      }
       const nameRaw = (event.householdName || event.name || "").trim();
       const name = nameRaw || "我的家庭";
       const created = await db.collection("households").add({
@@ -216,7 +276,7 @@ exports.main = async (event) => {
       const doc = after.data[0] || {};
       await upsertHouseholdMember(OPENID, newHouseholdId, "adult", doc.display_name || "成员");
       await tryAudit(OPENID, "createHousehold", newHouseholdId, { name });
-      return {
+      const createResult = {
         ok: true,
         data: {
           householdId: newHouseholdId,
@@ -226,9 +286,26 @@ exports.main = async (event) => {
           role: doc.role || "adult",
         },
       };
+      if (idemKey) {
+        try {
+          await db.collection("family_idempotency").doc(idemKey).set({
+            data: {
+              savedAt: new Date(),
+              action: "createHousehold",
+              result: createResult,
+            },
+          });
+        } catch (e) {
+          console.error("[idempotency_save]", e && e.message);
+        }
+      }
+      return createResult;
     }
 
     if (action === "joinHousehold") {
+      if (!(await bumpRateLimit(OPENID, "joinHousehold", 24))) {
+        return { ok: false, message: "尝试次数过多，请稍后再试" };
+      }
       const rawCode = `${event.inviteCode || event.code || ""}`.trim().toUpperCase();
       if (!rawCode) return { ok: false, message: "请填写邀请码" };
       const inviteRows = await db.collection("invite_codes").where({ code: rawCode }).limit(1).get();

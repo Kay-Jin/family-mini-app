@@ -79,7 +79,7 @@
 - `album_items`
 - `members`（Onboarding / 成员：`openid`、`uid`、`display_name`、`householdId`、`role` 等）
 - `invite_codes`（`maxUses` / `usedCount`；每成功加入一名新成员 `usedCount`+1，达上限则不可用；兼容旧数据仅 `usedAt` 的单次码）
-- `family_audit_logs`（**可选**，云函数 `tryAudit` 写入；见 `docs/security-hardening.md`）
+- `family_audit_logs | family_rate_limit | family_idempotency`（**可选**，见 `docs/security-hardening.md`）
 - `visibility_settings`
 - `checkin_policies`
 - `checkin_alerts`

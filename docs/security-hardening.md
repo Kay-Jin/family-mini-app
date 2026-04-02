@@ -35,6 +35,21 @@
 - 部署后用 **云函数日志** 监控错误率；对 `unknown action`、数据库超时单独告警（微信云控制台/的外部监控）。
 - **依赖**：`npm audit` 在 `cloudfunctions/family` 内定期执行；升级 `wx-server-sdk` 跟官方发版说明走。
 
-## 5. 与「今晚联调」的关系
+## 5. 云函数环境变量（微信云开发 → 云函数 → family → 版本/配置）
 
-先完成 **`docs/smoke-test-lian-tiao.md`** 或 **`docs/todo-evening-local.md`**，再在测试环境把数据库权限收到上表建议，观察是否仍有合法路径被拦截。
+| 变量 | 含义 |
+|------|------|
+| `AUDIT_FAIL_STRICT=1` | 写 **`family_audit_logs` 失败则整笔请求报错**（需已建集合并配置好权限）。默认不写或 `0`：**仅打日志，不阻断**。 |
+| `DISABLE_RATE_LIMIT=1` | 关闭 **`joinHousehold` / `createHousehold`** 的分钟级限流。默认不限：约 **24 次/分钟/人** 加入尝试、**8 次/分钟/人** 创建家庭。 |
+
+限流依赖集合 **`family_rate_limit`**（可按文档 ID 自增计数）；**不存在时 `bumpRateLimit` 会失败并 fail-open 放行**，与审计默认策略一致。
+
+## 6. 幂等：`family_idempotency`（创建家庭）
+
+- 小程序 **`createHouseholdCloud`** 会生成 **`clientRequestId`** 并随云函数传入。
+- 云函数在 **`createHousehold`** 成功后将 `{ ok, data }` 全文缓存在 **`family_idempotency`**（文档 ID 与 `openid`+`clientRequestId` 绑定）。
+- **相同 `clientRequestId` 重试**时直接返回缓存结果，避免网络重试导致 **重复创建多个家庭**（需在控制台创建该集合，否则读写失败会打日志；读失败会继续创建——与其它可选集合一致）。
+
+## 7. 与「今晚联调」的关系
+
+先完成 **`docs/smoke-test-lian-tiao.md`** 或 **`docs/todo-evening-local.md`**，再在测试环境把数据库权限收到上表建议。若要验证严格审计：**先建 `family_audit_logs` 再设 `AUDIT_FAIL_STRICT=1`**，故意写错集合权限应看到请求失败。
