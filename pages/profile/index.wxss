@@ -40,3 +40,8 @@
 .household-row:last-child {
   border-bottom: none;
 }
+
+.card-advanced-toggle {
+  border-style: dashed;
+  background: #faf8f5;
+}

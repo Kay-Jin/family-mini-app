@@ -48,3 +48,39 @@
   min-height: 88rpx;
 }
 
+.member-list-hint {
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+  line-height: 1.45;
+}
+
+.member-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid rgba(42, 34, 27, 0.08);
+}
+
+.member-row:last-child {
+  border-bottom: none;
+}
+
+.member-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-weight: 600;
+  color: #2a221b;
+  margin-bottom: 6rpx;
+}
+
+.member-role-picker {
+  flex-shrink: 0;
+  margin-top: 0;
+  white-space: nowrap;
+}
+

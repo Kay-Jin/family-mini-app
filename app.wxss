@@ -28,6 +28,33 @@ page {
   color: #655a4f;
 }
 
+/* 轻量加载反馈（避免仅纯文字） */
+@keyframes loading-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.loading-hint {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 8rpx 0 16rpx;
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+
+.loading-hint::before {
+  content: "";
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #567a58;
+}
+
 .btn-primary {
   background: #567a58;
   color: #ffffff;
@@ -59,6 +86,7 @@ page {
 }
 
 .senior .btn-primary,
+.senior .btn-secondary,
 .senior button {
   min-height: 96rpx;
   font-size: 34rpx;

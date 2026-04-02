@@ -1,11 +1,16 @@
-<view class="container {{role === 'senior' ? 'senior' : ''}}">
-  <view wx:if="{{loading}}" class="muted">加载中...</view>
+<view class="container {{seniorMode ? 'senior' : ''}}">
+  <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
     <view class="title">家庭相册</view>
     <button class="btn-primary" bindtap="onUploadTap" wx:if="{{role !== 'senior' && visibility.share_album_contribute}}">上传照片</button>
-    <view class="muted" wx:if="{{role === 'senior'}}">长辈账号默认仅浏览，上传入口可由家人代操作。</view>
+    <view class="muted" wx:if="{{role === 'senior'}}">长辈账号默认仅浏览，上传可由家人代为操作。</view>
     <view class="muted" wx:if="{{!visibility.share_album_contribute}}">当前家庭已关闭相册共建。</view>
+  </view>
+
+  <view class="card album-empty" wx:if="{{!loading && !items.length}}">
+    <view class="title">暂无照片</view>
+    <view class="muted">还没有家庭照片。若已开启相册共建，可点击上方「上传照片」添加第一张。</view>
   </view>
 
   <view class="card" wx:for="{{items}}" wx:key="id">

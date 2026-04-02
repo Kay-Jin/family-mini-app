@@ -6,7 +6,7 @@ const { ensureHouseholdForCloudbase } = require("../../../utils/routeGuard");
 Page({
   data: {
     members: [],
-    roleRange: ["adult", "senior"],
+    rolePickerLabels: ["成年人", "长辈"],
     inviteRole: "adult",
     inviteMaxUses: 1,
     inviteCode: "",
@@ -138,7 +138,8 @@ Page({
 
   async onMemberRoleChange(e) {
     const uid = e.currentTarget.dataset.uid;
-    const role = `${e.detail.value}` === "1" ? "senior" : "adult";
+    const idx = parseInt(`${e.detail.value}`, 10);
+    const role = idx === 1 ? "senior" : "adult";
     try {
       await service.updateMemberRole(uid, role);
       wx.showToast({ title: "角色已更新", icon: "success" });

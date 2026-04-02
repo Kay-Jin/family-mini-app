@@ -1,0 +1,16 @@
+/** 界面展示用中文映射（不改后端字段） */
+function roleZh(r) {
+  if (r === "senior") return "长辈";
+  if (r === "adult") return "成年人";
+  return r || "";
+}
+
+function inviteStatusZh(s) {
+  if (s === "active") return "有效";
+  if (s === "revoked") return "已作废";
+  if (s === "expired") return "已过期";
+  return s || "";
+}
+
+module.exports.roleZh = roleZh;
+module.exports.inviteStatusZh = inviteStatusZh;

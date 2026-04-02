@@ -28,8 +28,8 @@ Page({
     seniorMode: false,
     role: "adult",
     roleOptions: [
-      { label: "成年成员（adult）", value: "adult" },
-      { label: "长辈成员（senior）", value: "senior" },
+      { label: "成年成员", value: "adult" },
+      { label: "长辈成员", value: "senior" },
     ],
     backendMode: "mock",
     backendModeOptions: [
@@ -42,6 +42,8 @@ Page({
     authToken: "",
     subscribeMorningTmplIds: "",
     myHouseholds: [],
+    /** 折叠「角色模拟 / 接口配置」，减少日常用户干扰 */
+    showAdvanced: false,
   },
 
   async onShow() {
@@ -109,7 +111,12 @@ Page({
     const role = e.detail.value;
     setUserRole(role);
     this.setData({ role });
-    wx.showToast({ title: `当前角色：${role}`, icon: "none" });
+    const label = role === "senior" ? "长辈成员" : "成年成员";
+    wx.showToast({ title: `演示角色：${label}`, icon: "none" });
+  },
+
+  toggleAdvanced() {
+    this.setData({ showAdvanced: !this.data.showAdvanced });
   },
 
   onBackendModeChange(e) {

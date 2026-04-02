@@ -1,5 +1,7 @@
+<wxs src="../../utils/i18n.wxs" module="loc" />
+
 <view class="container">
-  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
 
   <view wx:if="{{!loading && bootstrapError}}" class="card error">
     <view class="title">无法连接云服务</view>
@@ -20,7 +22,7 @@
       data-hid="{{item.householdId}}"
     >
       <text>{{item.name || '家庭'}}</text>
-      <text class="muted"> · {{item.role}}</text>
+      <text class="muted"> · {{loc.roleZh(item.role)}}</text>
     </view>
   </block>
 

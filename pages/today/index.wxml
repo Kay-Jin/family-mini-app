@@ -1,27 +1,27 @@
 <view class="container {{seniorMode ? 'senior' : ''}}">
-  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
 
   <view class="card" wx:if="{{seniorMode}}">
-    <view class="title">长辈快捷首页</view>
+    <view class="title">今日要点</view>
+    <view class="muted senior-actions-hint">大字按钮，点一次即可报平安。下方可求助或看相册。</view>
     <button class="btn-primary" bindtap="onSafeCheckIn">我很好，报平安</button>
-    <button bindtap="onHelpTap">需要帮助，请联系我</button>
-    <button bindtap="onViewFamilyDynamics">看看家人动态</button>
+    <button class="btn-secondary" bindtap="onHelpTap">需要帮助，请联系家人</button>
+    <button class="btn-secondary" bindtap="onViewFamilyDynamics">看家庭相册</button>
   </view>
 
   <view class="card" wx:if="{{visibility.include_in_morning_brief}}">
     <view class="title">每日家庭晨报</view>
     <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
     <view wx:if="{{brief && visibility.share_city_weather}}" class="muted">天气：{{brief.city_weather}}</view>
-    <button wx:if="{{!seniorMode}}" class="btn-secondary" bindtap="onSubscribeMorningBrief">订阅晨报提醒（一次性授权）</button>
+    <button wx:if="{{!seniorMode}}" class="btn-secondary" bindtap="onSubscribeMorningBrief">开启晨报提醒</button>
+    <view wx:if="{{!seniorMode}}" class="muted subscribe-hint">需微信消息授权；我们不会频繁打扰。</view>
   </view>
 
-  <view class="card">
+  <view class="card" wx:if="{{!seniorMode}}">
     <view class="title">一键报平安</view>
-    <button class="btn-primary" bindtap="onSafeCheckIn">
-      {{seniorMode ? "我很好，已报平安" : "报平安（<2秒）"}}
-    </button>
-    <view class="muted" wx:if="{{role === 'senior'}}">长辈模式下仅保留核心操作与简洁提示。</view>
+    <button class="btn-primary" bindtap="onSafeCheckIn">报平安（约 2 秒内完成）</button>
+    <view class="muted" wx:if="{{role === 'senior'}}">长辈账号下界面已简化。</view>
   </view>
 
   <view class="card" wx:if="{{brief && visibility.include_in_morning_brief}}">

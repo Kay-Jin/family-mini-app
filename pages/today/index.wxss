@@ -22,3 +22,13 @@
   color: #8c6346;
   margin-top: 8rpx;
 }
+
+.senior-actions-hint {
+  margin-bottom: 20rpx;
+  line-height: 1.5;
+}
+
+.subscribe-hint {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+}

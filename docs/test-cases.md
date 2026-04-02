@@ -29,7 +29,7 @@
 | TC-TOD-006 | Hide check-in records by visibility | ENV-A, set `share_last_checkin_time=false` | Return to `今日` | Check-in history card hidden |
 | TC-TOD-007 | Show weather when enabled | ENV-A, `share_city_weather=true` | Open `今日` | Weather line shown in brief card |
 | TC-TOD-008 | Role-based senior prompt | ENV-A, role `senior` | Open `今日` | Senior helper text shown |
-| TC-TOD-009 | Morning brief subscribe CTA | ENV-A/F，已配置晨报模板 ID（`apiConfig` 存储） | 在 `今日` 晨报区触发订阅 | 调用 `wx.requestSubscribeMessage`，用户可拒绝；无崩溃 |
+| TC-TOD-009 | Morning brief subscribe CTA | ENV-A/F，已配置晨报模板 ID（`apiConfig` 存储） | 在 `今日` 晨报区点击「开启晨报提醒」 | 调用 `wx.requestSubscribeMessage`，用户可拒绝；无崩溃 |
 
 ### 3.2 F-M3 Health
 
@@ -61,7 +61,7 @@
 | TC-PRO-002 | Role simulation switch | ENV-A | Change role adult/senior | Role persists and affects Today/Memories behavior |
 | TC-PRO-003 | Navigate household | ENV-A | Tap household card | Household page opens |
 | TC-PRO-004 | Navigate visibility | ENV-A | Tap visibility card | Visibility page opens |
-| TC-PRO-005 | Save morning brief template IDs | ENV-A/F | 在 `我的` 填写/保存晨报模板 ID（逗号分隔） | 值持久化；`今日` 订阅使用最新 ID |
+| TC-PRO-005 | Save morning brief template IDs | ENV-A/F | 在 `我的` →「高级与调试」展开后，在接口配置中填写/保存晨报模板 ID（逗号分隔） | 值持久化；`今日` 订阅使用最新 ID |
 | TC-HOU-001 | Household list loads | ENV-A | Open household page | Members rendered |
 | TC-HOU-002 | Update member role success | ENV-A | Change member role picker | Success toast + role refreshed |
 | TC-HOU-003 | Generate invite code | ENV-A | Select role + generate | Invite code displayed |

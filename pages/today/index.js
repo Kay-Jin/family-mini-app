@@ -118,8 +118,9 @@ Page({
     const tmplIds = api.getSubscribeMorningTmplIds();
     if (!tmplIds.length) {
       wx.showModal({
-        title: "订阅晨报",
-        content: "请先在「我的 → 接口配置」填写微信公众平台分配的订阅消息模板 ID（逗号分隔，最多 3 个）。",
+        title: "开启晨报提醒",
+        content:
+          "需要先在「我的 → 高级与调试 → 接口配置」中填写微信公众平台提供的订阅消息模板 ID（逗号分隔，最多 3 个）。保存后再来开启即可。",
         showCancel: false,
       });
       return;

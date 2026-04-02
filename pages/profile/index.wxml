@@ -1,3 +1,5 @@
+<wxs src="../../utils/i18n.wxs" module="loc" />
+
 <view class="container {{seniorMode ? 'senior' : ''}}">
   <view class="card">
     <view class="title">家账号与设置</view>
@@ -5,46 +7,57 @@
       <text>长辈模式</text>
       <switch checked="{{seniorMode}}" bindchange="onSeniorSwitch" />
     </view>
-    <view class="muted">开启后会放大字号和按钮点击区域。</view>
-  </view>
-
-  <view class="card">
-    <view class="title">角色模拟（MVP）</view>
-    <radio-group bindchange="onRoleChange">
-      <label wx:for="{{roleOptions}}" wx:key="value" class="role-item">
-        <radio value="{{item.value}}" checked="{{role === item.value}}" />
-        <text>{{item.label}}</text>
-      </label>
-    </radio-group>
-  </view>
-
-  <view class="card">
-    <view class="title">接口配置</view>
-    <radio-group bindchange="onBackendModeChange">
-      <label wx:for="{{backendModeOptions}}" wx:key="value" class="role-item">
-        <radio value="{{item.value}}" checked="{{backendMode === item.value}}" />
-        <text>{{item.label}}</text>
-      </label>
-    </radio-group>
-    <input wx:if="{{backendMode === 'http'}}" class="input" placeholder="API Base URL" value="{{apiBaseUrl}}" bindinput="onApiInput" />
-    <input wx:if="{{backendMode === 'cloudbase'}}" class="input" placeholder="CloudBase Env ID" value="{{cloudEnvId}}" bindinput="onCloudEnvInput" />
-    <input wx:if="{{backendMode !== 'mock'}}" class="input" placeholder="Bearer Token（可选）" value="{{authToken}}" bindinput="onTokenInput" />
-    <input
-      class="input"
-      placeholder="晨报订阅模板 ID（逗号分隔，最多 3 个，可选）"
-      value="{{subscribeMorningTmplIds}}"
-      bindinput="onSubscribeTmplInput"
-    />
-    <button class="btn-primary" bindtap="onSaveApiConfig">保存接口配置</button>
+    <view class="muted">开启后字号与按钮会放大，便于长辈阅读与点击（全站 Tab 一致生效）。</view>
   </view>
 
   <view class="card" bindtap="goHousehold">
-    <view>家庭组织与权限</view>
+    <view class="title">家庭组织与权限</view>
+    <view class="muted">成员与邀请码</view>
   </view>
 
   <view class="card" bindtap="goVisibility">
-    <view>可见性与隐私</view>
+    <view class="title">可见性与隐私</view>
+    <view class="muted">晨报、健康、相册等展示范围</view>
   </view>
+
+  <view class="card card-advanced-toggle" bindtap="toggleAdvanced">
+    <view class="title">高级与调试</view>
+    <view class="muted">{{showAdvanced ? "点击收起开发者与演示选项" : "联调、演示或排查问题时再展开"}}</view>
+  </view>
+
+  <block wx:if="{{showAdvanced}}">
+    <view class="card">
+      <view class="title">角色模拟（仅演示）</view>
+      <view class="muted">用于预览不同账号权限，不影响云端真实身份。</view>
+      <radio-group bindchange="onRoleChange">
+        <label wx:for="{{roleOptions}}" wx:key="value" class="role-item">
+          <radio value="{{item.value}}" checked="{{role === item.value}}" />
+          <text>{{item.label}}</text>
+        </label>
+      </radio-group>
+    </view>
+
+    <view class="card">
+      <view class="title">接口配置</view>
+      <view class="muted">Mock / 云开发 / 自建 HTTP；日常使用者通常保持默认即可。</view>
+      <radio-group bindchange="onBackendModeChange">
+        <label wx:for="{{backendModeOptions}}" wx:key="value" class="role-item">
+          <radio value="{{item.value}}" checked="{{backendMode === item.value}}" />
+          <text>{{item.label}}</text>
+        </label>
+      </radio-group>
+      <input wx:if="{{backendMode === 'http'}}" class="input" placeholder="API Base URL" value="{{apiBaseUrl}}" bindinput="onApiInput" />
+      <input wx:if="{{backendMode === 'cloudbase'}}" class="input" placeholder="CloudBase Env ID" value="{{cloudEnvId}}" bindinput="onCloudEnvInput" />
+      <input wx:if="{{backendMode !== 'mock'}}" class="input" placeholder="Bearer Token（可选）" value="{{authToken}}" bindinput="onTokenInput" />
+      <input
+        class="input"
+        placeholder="晨报订阅模板 ID（逗号分隔，最多 3 个，可选）"
+        value="{{subscribeMorningTmplIds}}"
+        bindinput="onSubscribeTmplInput"
+      />
+      <button class="btn-primary" bindtap="onSaveApiConfig">保存接口配置</button>
+    </view>
+  </block>
 
   <view class="card" wx:if="{{backendMode === 'cloudbase' && myHouseholds.length > 1}}">
     <view class="title">切换家庭</view>
@@ -57,7 +70,7 @@
       data-hid="{{item.householdId}}"
     >
       <text>{{item.name || '家庭'}}</text>
-      <text class="muted"> · {{item.role}}</text>
+      <text class="muted"> · {{loc.roleZh(item.role)}}</text>
     </view>
   </view>
 
