@@ -39,4 +39,10 @@
   <view class="card" bindtap="goVisibility">
     <view>可见性与隐私</view>
   </view>
+
+  <view class="card danger-zone" wx:if="{{backendMode === 'cloudbase'}}">
+    <view class="title">家庭账号</view>
+    <view class="muted">退出后需重新创建家庭或输入邀请码加入。</view>
+    <button class="btn-leave" bindtap="onLeaveHousehold">退出当前家庭</button>
+  </view>
 </view>

@@ -1,4 +1,4 @@
-const { getBackendMode, HOUSEHOLD_ID, USER_ID } = require("./apiConfig");
+const { getBackendMode, getHouseholdId, getUserId } = require("./apiConfig");
 const mock = require("./mockService");
 const cloud = require("./cloudService");
 const { request, uploadFile } = require("./http");
@@ -7,15 +7,15 @@ function getMorningBrief() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getMorningBrief());
   if (mode === "cloudbase") return cloud.getMorningBrief();
-  return request(`/households/${HOUSEHOLD_ID}/morning_briefs/today`);
+  return request(`/households/${getHouseholdId()}/morning_briefs/today`);
 }
 
 function createCheckIn() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.createCheckIn());
   if (mode === "cloudbase") return cloud.createCheckIn();
-  return request(`/households/${HOUSEHOLD_ID}/check_ins`, "POST", {
-    user_uid: USER_ID,
+  return request(`/households/${getHouseholdId()}/check_ins`, "POST", {
+    user_uid: getUserId(),
     client_locale: "zh-CN",
   });
 }
@@ -24,21 +24,21 @@ function listCheckIns() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getCheckIns());
   if (mode === "cloudbase") return cloud.listCheckIns();
-  return request(`/households/${HOUSEHOLD_ID}/check_ins?limit=20`);
+  return request(`/households/${getHouseholdId()}/check_ins?limit=20`);
 }
 
 function getHealthSnapshot() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getHealthSnapshot());
   if (mode === "cloudbase") return cloud.getHealthSnapshot();
-  return request(`/households/${HOUSEHOLD_ID}/health_snapshots?uid=${USER_ID}`);
+  return request(`/households/${getHouseholdId()}/health_snapshots?uid=${getUserId()}`);
 }
 
 function listAlbum() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.listAlbum());
   if (mode === "cloudbase") return cloud.listAlbum();
-  return request(`/households/${HOUSEHOLD_ID}/album`);
+  return request(`/households/${getHouseholdId()}/album`);
 }
 
 function addAlbumPhoto({ localPath, tags }) {
@@ -53,8 +53,8 @@ function addAlbumPhoto({ localPath, tags }) {
     );
   }
   if (mode === "cloudbase") return cloud.addAlbumPhoto({ localPath, tags });
-  return uploadFile(`/households/${HOUSEHOLD_ID}/album/upload`, localPath, {
-    user_uid: USER_ID,
+  return uploadFile(`/households/${getHouseholdId()}/album/upload`, localPath, {
+    user_uid: getUserId(),
     tags: (tags || []).join(","),
   });
 }
@@ -63,84 +63,84 @@ function listMembers() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.listMembers());
   if (mode === "cloudbase") return cloud.listMembers();
-  return request(`/households/${HOUSEHOLD_ID}/members`);
+  return request(`/households/${getHouseholdId()}/members`);
 }
 
 function updateMemberRole(uid, role) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.updateMemberRole(uid, role));
   if (mode === "cloudbase") return cloud.updateMemberRole(uid, role);
-  return request(`/households/${HOUSEHOLD_ID}/members/${uid}`, "PATCH", { role });
+  return request(`/households/${getHouseholdId()}/members/${uid}`, "PATCH", { role });
 }
 
 function createInviteCode(role) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve({ code: mock.createInviteCode(role) });
   if (mode === "cloudbase") return cloud.createInviteCode(role);
-  return request(`/households/${HOUSEHOLD_ID}/invite_codes`, "POST", { role });
+  return request(`/households/${getHouseholdId()}/invite_codes`, "POST", { role });
 }
 
 function getVisibility() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getVisibility());
   if (mode === "cloudbase") return cloud.getVisibility();
-  return request(`/households/${HOUSEHOLD_ID}/settings/${USER_ID}`);
+  return request(`/households/${getHouseholdId()}/settings/${getUserId()}`);
 }
 
 function updateVisibility(partial) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.updateVisibility(partial));
   if (mode === "cloudbase") return cloud.updateVisibility(partial);
-  return request(`/households/${HOUSEHOLD_ID}/settings/${USER_ID}`, "PATCH", partial);
+  return request(`/households/${getHouseholdId()}/settings/${getUserId()}`, "PATCH", partial);
 }
 
 function getCheckinPolicy() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getCheckinPolicy());
   if (mode === "cloudbase") return cloud.getCheckinPolicy();
-  return request(`/households/${HOUSEHOLD_ID}/checkin_policy`);
+  return request(`/households/${getHouseholdId()}/checkin_policy`);
 }
 
 function updateCheckinPolicy(partial) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.updateCheckinPolicy(partial));
   if (mode === "cloudbase") return cloud.updateCheckinPolicy(partial);
-  return request(`/households/${HOUSEHOLD_ID}/checkin_policy`, "PATCH", partial);
+  return request(`/households/${getHouseholdId()}/checkin_policy`, "PATCH", partial);
 }
 
 function getCheckinAlerts() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getCheckinAlerts());
   if (mode === "cloudbase") return cloud.getCheckinAlerts();
-  return request(`/households/${HOUSEHOLD_ID}/checkin_alerts?limit=20`);
+  return request(`/households/${getHouseholdId()}/checkin_alerts?limit=20`);
 }
 
 function listCareReminders() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.listCareReminders());
   if (mode === "cloudbase") return cloud.listCareReminders();
-  return request(`/households/${HOUSEHOLD_ID}/care_reminders`);
+  return request(`/households/${getHouseholdId()}/care_reminders`);
 }
 
 function addCareReminder(payload) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.addCareReminder(payload));
   if (mode === "cloudbase") return cloud.addCareReminder(payload);
-  return request(`/households/${HOUSEHOLD_ID}/care_reminders`, "POST", payload);
+  return request(`/households/${getHouseholdId()}/care_reminders`, "POST", payload);
 }
 
 function setCareReminderDone(id, done) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.setCareReminderDone(id, done));
   if (mode === "cloudbase") return cloud.setCareReminderDone(id, done);
-  return request(`/households/${HOUSEHOLD_ID}/care_reminders/${id}`, "PATCH", { done });
+  return request(`/households/${getHouseholdId()}/care_reminders/${id}`, "PATCH", { done });
 }
 
 function createHelpRequest(type) {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.createHelpRequest(type));
   if (mode === "cloudbase") return cloud.createHelpRequest(type);
-  return request(`/households/${HOUSEHOLD_ID}/help_requests`, "POST", { type });
+  return request(`/households/${getHouseholdId()}/help_requests`, "POST", { type });
 }
 
 module.exports = {

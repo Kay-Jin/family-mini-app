@@ -37,6 +37,142 @@ exports.main = async (event) => {
   const householdId = event.householdId;
 
   try {
+    if (action === "getOrCreateUser") {
+      let rows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      if (!rows.data.length) {
+        await db.collection("members").add({
+          data: {
+            openid: OPENID,
+            uid: OPENID,
+            display_name: (event.display_name && String(event.display_name).trim()) || "成员",
+            householdId: null,
+            role: "adult",
+            createdAt: new Date(),
+          },
+        });
+        rows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      }
+      const doc = rows.data[0] || {};
+      return {
+        ok: true,
+        data: {
+          openid: OPENID,
+          display_name: doc.display_name || "成员",
+          householdId: doc.householdId || null,
+          role: doc.role || "adult",
+        },
+      };
+    }
+
+    if (action === "createHousehold") {
+      const nameRaw = (event.householdName || event.name || "").trim();
+      const name = nameRaw || "我的家庭";
+      const created = await db.collection("households").add({
+        data: {
+          name,
+          createdBy: OPENID,
+          createdAt: new Date(),
+        },
+      });
+      const newHouseholdId = created._id;
+      const membersExist = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      if (!membersExist.data.length) {
+        await db.collection("members").add({
+          data: {
+            openid: OPENID,
+            uid: OPENID,
+            display_name: "成员",
+            householdId: newHouseholdId,
+            role: "adult",
+            joinedAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+      } else {
+        await db.collection("members").where({ openid: OPENID }).update({
+          data: {
+            householdId: newHouseholdId,
+            role: "adult",
+            uid: OPENID,
+            joinedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      }
+      const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const doc = after.data[0] || {};
+      return {
+        ok: true,
+        data: {
+          householdId: newHouseholdId,
+          name,
+          openid: OPENID,
+          display_name: doc.display_name || "成员",
+          role: doc.role || "adult",
+        },
+      };
+    }
+
+    if (action === "joinHousehold") {
+      const rawCode = `${event.inviteCode || event.code || ""}`.trim().toUpperCase();
+      if (!rawCode) return { ok: false, message: "请填写邀请码" };
+      const inviteRows = await db.collection("invite_codes").where({ code: rawCode }).limit(1).get();
+      if (!inviteRows.data.length) return { ok: false, message: "邀请码无效" };
+      const inv = inviteRows.data[0];
+      const exp = inv.expiresAt ? new Date(inv.expiresAt) : null;
+      if (exp && exp.getTime() < Date.now()) return { ok: false, message: "邀请码已过期" };
+      const hid = inv.householdId;
+      const joinRole = inv.role === "senior" ? "senior" : "adult";
+      const memRows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      if (memRows.data.length && memRows.data[0].householdId && memRows.data[0].householdId !== hid) {
+        return { ok: false, message: "已加入其他家庭，请先退出后再操作" };
+      }
+      if (!memRows.data.length) {
+        await db.collection("members").add({
+          data: {
+            openid: OPENID,
+            uid: OPENID,
+            display_name: (event.display_name && String(event.display_name).trim()) || "成员",
+            householdId: hid,
+            role: joinRole,
+            joinedAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+      } else {
+        await db.collection("members").where({ openid: OPENID }).update({
+          data: {
+            householdId: hid,
+            role: joinRole,
+            uid: OPENID,
+            joinedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      }
+      const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const doc = after.data[0] || {};
+      return {
+        ok: true,
+        data: {
+          householdId: hid,
+          openid: OPENID,
+          display_name: doc.display_name || "成员",
+          role: doc.role || joinRole,
+        },
+      };
+    }
+
+    if (action === "leaveHousehold") {
+      await db.collection("members").where({ openid: OPENID }).update({
+        data: {
+          householdId: null,
+          updatedAt: new Date(),
+        },
+      });
+      return { ok: true, data: { openid: OPENID } };
+    }
+
     if (!householdId) return { ok: false, message: "householdId is required" };
 
     if (action === "getMorningBrief") {
@@ -107,7 +243,12 @@ exports.main = async (event) => {
 
     if (action === "listMembers") {
       const records = await db.collection("members").where({ householdId }).get();
-      return { ok: true, data: records.data };
+      const data = records.data.map((m) => ({
+        ...m,
+        uid: m.uid || m.openid,
+        display_name: m.display_name || "成员",
+      }));
+      return { ok: true, data };
     }
 
     if (action === "updateMemberRole") {

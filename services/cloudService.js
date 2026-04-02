@@ -1,4 +1,4 @@
-const { HOUSEHOLD_ID } = require("./apiConfig");
+const { getHouseholdId } = require("./apiConfig");
 
 function call(action, payload) {
   return new Promise((resolve, reject) => {
@@ -6,7 +6,7 @@ function call(action, payload) {
       name: "family",
       data: {
         action,
-        householdId: HOUSEHOLD_ID,
+        householdId: getHouseholdId(),
         ...(payload || {}),
       },
       success(res) {
@@ -27,7 +27,7 @@ function call(action, payload) {
 function uploadToCloud(localPath) {
   return new Promise((resolve, reject) => {
     const ext = (localPath.split(".").pop() || "jpg").toLowerCase();
-    const cloudPath = `album/${HOUSEHOLD_ID}/${Date.now()}-${Math.floor(
+    const cloudPath = `album/${getHouseholdId()}/${Date.now()}-${Math.floor(
       Math.random() * 10000
     )}.${ext}`;
     wx.cloud.uploadFile({

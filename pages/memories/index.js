@@ -1,5 +1,6 @@
 const service = require("../../services/familyService");
 const { getUserRole } = require("../../utils/storage");
+const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
 
 Page({
   data: {
@@ -13,6 +14,7 @@ Page({
   },
 
   onShow() {
+    if (!ensureHouseholdForCloudbase()) return;
     this.setData({ role: getUserRole() });
     this.loadData();
   },

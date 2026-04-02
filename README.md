@@ -32,7 +32,8 @@
 - `services/mockService.js`：MVP Mock 数据实现
 - `services/familyService.js`：业务服务层（可切换 Mock / HTTP）
 - `services/http.js`：统一请求封装
-- `services/apiConfig.js`：接口环境配置（`USE_MOCK`、`API_BASE_URL`、`HOUSEHOLD_ID`）
+- `services/apiConfig.js`：接口环境配置（`backend_mode`、`API_BASE_URL`、`getHouseholdId`/`MOCK_HOUSEHOLD_ID`）
+- `services/authService.js`：CloudBase 下 `wx.login`、getOrCreateUser / 创建或加入家庭
 - `utils/tokens.js`：设计 Token（颜色/间距）
 - `utils/storage.js`：长辈模式本地持久化
 
@@ -60,15 +61,22 @@
 - `cloudfunctions/family/index.js`
 - `cloudfunctions/family/package.json`
 
-在微信开发者工具中右键 `cloudfunctions/family` 进行“上传并部署：云端安装依赖”。
+在微信开发者工具中右键 `cloudfunctions/family` 进行 **「上传并部署：云端安装依赖」**（修改 `index.js` 后需重新部署方可生效）。
+
+**部署检查清单**
+
+1. 云开发控制台创建数据库集合（见下列表，含 `households`）。
+2. 上传并部署云函数 `family`。
+3. 小程序「我的 → 接口配置」选择 CloudBase 并保存 Env ID，`wx.cloud.init` 会使用该环境。
 
 ### 需要的集合（建议）
 
+- `households`（Onboarding：`name` / `createdBy` / `createdAt`）
 - `morning_briefs`
 - `check_ins`
 - `health_snapshots`
 - `album_items`
-- `members`
+- `members`（Onboarding / 成员：`openid`、`uid`、`display_name`、`householdId`、`role` 等）
 - `invite_codes`
 - `visibility_settings`
 - `checkin_policies`
@@ -81,12 +89,12 @@
 - 相册上传在 CloudBase 模式下使用 `wx.cloud.uploadFile`，文件地址写入 `album_items`
 - 所有业务操作通过云函数 `family` 的 `action` 分发处理
 - `openid` 由云函数侧获取并用于写入/鉴权基础字段
+- **Onboarding**：`getOrCreateUser` / `createHousehold` / `joinHousehold`；「我的」在 CloudBase 模式下可 **退出当前家庭**（`leaveHousehold`）
 
 ## 下一步建议
 
 - 完善 CloudBase 数据权限规则（按 household 成员限制读写）
 - 增加云函数/消息订阅用于晨报推送
-- 结合真实业务补齐 household 创建/加入流程
 
 ## 测试文档
 

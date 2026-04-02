@@ -1,4 +1,6 @@
 const { getSeniorMode, setSeniorMode, getUserRole, setUserRole } = require("../../utils/storage");
+const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
+const auth = require("../../services/authService");
 const {
   getApiBaseUrl,
   setApiBaseUrl,
@@ -30,6 +32,7 @@ Page({
   },
 
   onShow() {
+    if (!ensureHouseholdForCloudbase()) return;
     this.setData({
       seniorMode: getSeniorMode(),
       role: getUserRole(),
@@ -92,5 +95,27 @@ Page({
       });
     }
     wx.showToast({ title: "接口配置已保存", icon: "success" });
+  },
+
+  onLeaveHousehold() {
+    if (getBackendMode() !== "cloudbase") return;
+    wx.showModal({
+      title: "退出当前家庭",
+      content: "退出后将回到「加入家庭」流程，可重新创建或凭邀请码加入。是否继续？",
+      confirmText: "退出",
+      success: async (res) => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: "处理中" });
+        try {
+          await auth.leaveHouseholdCloud();
+          wx.hideLoading();
+          wx.showToast({ title: "已退出", icon: "success" });
+          wx.reLaunch({ url: "/pages/onboarding/index" });
+        } catch (err) {
+          wx.hideLoading();
+          wx.showToast({ title: err.message || "操作失败", icon: "none" });
+        }
+      },
+    });
   },
 });
