@@ -97,6 +97,7 @@
 | TC-STB-003 | Rapid tab switching | Any | Quickly switch tabs 20x | No white screen/crash |
 | TC-STB-004 | Pull refresh across all data pages | Any | Repeated pull refresh | No memory leak symptoms / freeze |
 | TC-STB-005 | Error then recovery | ENV-C then A | Fail a request then fix config | App recovers without reinstall |
+| TC-STB-006 | First-run tab tour | 清除本地 key `ui_tour_v1_*` 或首次安装 | 依次打开四个 Tab | 各 Tab 底部出现一次引导，点「知道了」或点遮罩关闭后不再出现 |
 
 ### 3.7 Onboarding & Cloud identity
 

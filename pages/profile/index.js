@@ -6,6 +6,7 @@ const {
   setDisplayName,
 } = require("../../utils/storage");
 const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
+const tour = require("../../utils/tour");
 const auth = require("../../services/authService");
 const {
   getApiBaseUrl,
@@ -44,6 +45,7 @@ Page({
     myHouseholds: [],
     /** 折叠「角色模拟 / 接口配置」，减少日常用户干扰 */
     showAdvanced: false,
+    showTour: false,
   },
 
   async onShow() {
@@ -56,6 +58,7 @@ Page({
       cloudEnvId: getCloudEnvId(),
       authToken: getAuthToken(),
       subscribeMorningTmplIds: (getSubscribeMorningTmplIds() || []).join(","),
+      showTour: !tour.hasSeenTour("profile"),
     });
     if (getBackendMode() === "cloudbase") {
       try {
@@ -118,6 +121,13 @@ Page({
   toggleAdvanced() {
     this.setData({ showAdvanced: !this.data.showAdvanced });
   },
+
+  onDismissTour() {
+    tour.markTourSeen("profile");
+    this.setData({ showTour: false });
+  },
+
+  tourEat() {},
 
   onBackendModeChange(e) {
     const mode = e.detail.value || "mock";

@@ -79,4 +79,14 @@
     <view class="muted">退出后需重新创建家庭或输入邀请码加入。</view>
     <button class="btn-leave" bindtap="onLeaveHousehold">退出当前家庭</button>
   </view>
+
+  <view class="{{seniorMode ? 'senior' : ''}}" wx:if="{{showTour}}">
+    <view class="tour-mask" catchtap="onDismissTour">
+      <view class="tour-card" catchtap="tourEat">
+        <view class="tour-title">我的</view>
+        <view class="tour-body">管理长辈模式、家庭与隐私。开发者联调选项在「高级与调试」中，日常使用可保持关闭。</view>
+        <button class="btn-primary" bindtap="onDismissTour">知道了</button>
+      </view>
+    </view>
+  </view>
 </view>

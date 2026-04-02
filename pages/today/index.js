@@ -2,6 +2,7 @@ const service = require("../../services/familyService");
 const api = require("../../services/apiConfig");
 const { getSeniorMode, getUserRole } = require("../../utils/storage");
 const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
+const tour = require("../../utils/tour");
 
 Page({
   data: {
@@ -21,6 +22,7 @@ Page({
       second_reminder_enabled: false,
     },
     checkinAlerts: [],
+    showTour: false,
   },
 
   onShow() {
@@ -28,9 +30,17 @@ Page({
     this.setData({
       seniorMode: getSeniorMode(),
       role: getUserRole(),
+      showTour: !tour.hasSeenTour("today"),
     });
     this.loadData(false);
   },
+
+  onDismissTour() {
+    tour.markTourSeen("today");
+    this.setData({ showTour: false });
+  },
+
+  tourEat() {},
 
   async onPullDownRefresh() {
     await this.loadData(true);

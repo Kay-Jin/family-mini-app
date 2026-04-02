@@ -56,4 +56,14 @@
       {{item.member_name}}：{{item.message}}
     </view>
   </view>
+
+  <view class="{{seniorMode ? 'senior' : ''}}" wx:if="{{showTour}}">
+    <view class="tour-mask" catchtap="onDismissTour">
+      <view class="tour-card" catchtap="tourEat">
+        <view class="tour-title">今日可以做什么？</view>
+        <view class="tour-body">查看家庭晨报、一键报平安。开启长辈模式后，会用更大按钮突出最重要的操作。</view>
+        <button class="btn-primary" bindtap="onDismissTour">知道了</button>
+      </view>
+    </view>
+  </view>
 </view>

@@ -39,4 +39,14 @@
       </view>
     </view>
   </view>
+
+  <view class="{{seniorMode ? 'senior' : ''}}" wx:if="{{showTour}}">
+    <view class="tour-mask" catchtap="onDismissTour">
+      <view class="tour-card" catchtap="tourEat">
+        <view class="tour-title">健康</view>
+        <view class="tour-body">查看步数与睡眠摘要，并在此管理用药 / 复诊提醒。若不想分享某项，可在「我的 → 可见性与隐私」中关闭。</view>
+        <button class="btn-primary" bindtap="onDismissTour">知道了</button>
+      </view>
+    </view>
+  </view>
 </view>
