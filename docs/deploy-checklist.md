@@ -12,6 +12,7 @@
 | `household_members` | 成员与家庭的关联（列表/角色/多家庭） |
 | `members` | 用户总档（openid、默认 `householdId` 等） |
 | `invite_codes` | 邀请码，含 `maxUses` / `usedCount` / `expiresAt` |
+| `family_audit_logs` | **可选**，云函数审计；见 `docs/security-hardening.md` |
 | 其余业务集合 | 见根目录 `README.md` |
 
 权限建议见 **`docs/cloud-database-rules.md`**。
