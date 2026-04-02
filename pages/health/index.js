@@ -1,4 +1,5 @@
 const service = require("../../services/familyService");
+const { getBackendMode } = require("../../services/apiConfig");
 const { getSeniorMode } = require("../../utils/storage");
 const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
 const tour = require("../../utils/tour");
@@ -21,6 +22,7 @@ Page({
     error: "",
     seniorMode: false,
     showTour: false,
+    isMockBackend: false,
   },
 
   onShow() {
@@ -28,6 +30,7 @@ Page({
     this.setData({
       seniorMode: getSeniorMode(),
       showTour: !tour.hasSeenTour("health"),
+      isMockBackend: getBackendMode() === "mock",
     });
     this.loadData();
   },
