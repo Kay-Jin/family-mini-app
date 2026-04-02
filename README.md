@@ -79,6 +79,7 @@
 - `album_items`
 - `members`（Onboarding / 成员：`openid`、`uid`、`display_name`、`householdId`、`role` 等）
 - `invite_codes`（`maxUses` / `usedCount`；每成功加入一名新成员 `usedCount`+1，达上限则不可用；兼容旧数据仅 `usedAt` 的单次码）
+- `family_audit_logs`（**可选**，云函数 `tryAudit` 写入；见 `docs/security-hardening.md`）
 - `visibility_settings`
 - `checkin_policies`
 - `checkin_alerts`
@@ -94,6 +95,9 @@
 
 ## 下一步建议
 
+- **今晚本地联调**：`docs/todo-evening-local.md` → `docs/smoke-test-lian-tiao.md`
+- **安全硬化**：`docs/security-hardening.md`（权限 + 可选 `family_audit_logs`）
+- **中期产品**：`docs/product-roadmap.md`
 - 完善 CloudBase 数据权限规则（按 household 成员限制读写）
 - 增加云函数/消息订阅用于晨报推送
 

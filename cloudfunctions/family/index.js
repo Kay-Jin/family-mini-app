@@ -115,6 +115,23 @@ async function getDisplayNameForHousehold(openid, householdId) {
   return "成员";
 }
 
+/** 可选集合 `family_audit_logs`；不存在或权限不足时不影响主流程 */
+async function tryAudit(openid, actionName, hid, meta) {
+  try {
+    await db.collection("family_audit_logs").add({
+      data: {
+        at: new Date(),
+        openid: openid || "",
+        action: actionName,
+        householdId: hid || null,
+        meta: meta || {},
+      },
+    });
+  } catch (e) {
+    /* ignore */
+  }
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const action = event.action;
@@ -198,6 +215,7 @@ exports.main = async (event) => {
       const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
       const doc = after.data[0] || {};
       await upsertHouseholdMember(OPENID, newHouseholdId, "adult", doc.display_name || "成员");
+      await tryAudit(OPENID, "createHousehold", newHouseholdId, { name });
       return {
         ok: true,
         data: {
@@ -294,8 +312,11 @@ exports.main = async (event) => {
         },
       });
 
-      const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
-      const doc = after.data[0] || {};
+      const afterJoin = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const doc = afterJoin.data[0] || {};
+      await tryAudit(OPENID, "joinHousehold", hid, {
+        inviteSuffix: rawCode.length > 4 ? rawCode.slice(-4) : rawCode,
+      });
       return {
         ok: true,
         data: {
@@ -325,6 +346,7 @@ exports.main = async (event) => {
         data: { householdId: nextHid, updatedAt: new Date() },
       });
 
+      await tryAudit(OPENID, "leaveHousehold", leaveHid, { nextHouseholdId: nextHid });
       return {
         ok: true,
         data: {
@@ -421,6 +443,7 @@ exports.main = async (event) => {
           updatedAt: new Date(),
         },
       });
+      await tryAudit(OPENID, "updateMemberRole", householdId, { uid, role });
       return { ok: true, data: { uid, role } };
     }
 
@@ -442,6 +465,11 @@ exports.main = async (event) => {
         expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
       };
       await db.collection("invite_codes").add({ data: payload });
+      await tryAudit(OPENID, "createInviteCode", householdId, {
+        maxUses,
+        role,
+        codeSuffix: code.length > 4 ? code.slice(-4) : code,
+      });
       return { ok: true, data: { code } };
     }
 
