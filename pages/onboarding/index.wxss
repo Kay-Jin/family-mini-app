@@ -19,17 +19,6 @@
   box-shadow: 0 8rpx 20rpx rgba(86, 122, 88, 0.08);
 }
 
-.btn-secondary {
-  margin-top: 16rpx;
-  background: #e8e2d8;
-  color: #2a221b;
-  border-radius: 14rpx;
-  min-height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 button + .btn-primary {
   margin-top: 16rpx;
 }

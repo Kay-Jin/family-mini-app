@@ -43,7 +43,7 @@ page {
   background: #e8e2d8;
   color: #2a221b;
   border-radius: 14rpx;
-  min-height: 72rpx;
+  min-height: 88rpx;
   font-size: 28rpx;
   display: flex;
   align-items: center;

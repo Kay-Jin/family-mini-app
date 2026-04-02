@@ -57,6 +57,23 @@ const careReminders = [
 
 const helpRequests = [];
 
+let mockHouseholdName = "演示家庭";
+let mockHouseholdDissolved = false;
+let mockInviteCodeRows = [
+  {
+    _id: "mock-inv-seed",
+    code: "ADU-DEMO1",
+    role: "adult",
+    maxUses: 5,
+    usedCount: 0,
+    expiresAt: null,
+    revokedAt: null,
+    createdAt: new Date(),
+    createdByOpenid: "u1",
+    status: "active",
+  },
+];
+
 function getMorningBrief() {
   return {
     date: "2026-04-01",
@@ -131,30 +148,57 @@ function getCheckIns() {
 }
 
 function createInviteCode(role, maxUses) {
-  void maxUses;
-  const prefix = role === "senior" ? "SEN" : "ADU";
-  return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const mu =
+    maxUses != null && Number(maxUses) > 0 ? Math.min(100, Number(maxUses)) : 1;
+  const rrole = role === "senior" ? "senior" : "adult";
+  const prefix = rrole === "senior" ? "SEN" : "ADU";
+  const code = `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  mockInviteCodeRows.unshift({
+    _id: `mock-${Date.now()}`,
+    code,
+    role: rrole,
+    maxUses: mu,
+    usedCount: 0,
+    expiresAt: null,
+    revokedAt: null,
+    createdAt: new Date(),
+    createdByOpenid: "u1",
+    status: "active",
+  });
+  return code;
 }
 
 function getHouseholdSummary() {
-  return { name: "演示家庭", createdBy: "u1", dissolvedAt: null };
+  return {
+    name: mockHouseholdName,
+    createdBy: "u1",
+    dissolvedAt: mockHouseholdDissolved ? new Date().toISOString() : null,
+  };
 }
 
-function revokeInviteCode() {
-  return { code: "MOCK-REVOKED" };
+function revokeInviteCode(inviteCode) {
+  const c = `${inviteCode || ""}`.trim().toUpperCase();
+  const row = mockInviteCodeRows.find((x) => x.code === c);
+  if (!row) throw new Error("邀请码不存在");
+  row.revokedAt = new Date();
+  row.status = "revoked";
+  row.usedCount = row.maxUses;
+  return { code: c };
 }
 
 function dissolveHousehold() {
+  mockHouseholdDissolved = true;
   return { householdId: null };
 }
 
 function listInviteCodes() {
-  return [];
+  return mockInviteCodeRows.map((r) => ({ ...r }));
 }
 
 function updateHouseholdName(name) {
-  void name;
-  return { name: name || "演示家庭" };
+  const n = `${name || ""}`.trim();
+  if (n) mockHouseholdName = n;
+  return { name: mockHouseholdName };
 }
 
 function getCheckinPolicy() {
