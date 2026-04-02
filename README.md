@@ -104,6 +104,7 @@
 ## 部署清单（1 → 2 → 3）
 
 - 见 `docs/deploy-checklist.md`（控制台集合、上传云函数、端上验证）
+- **今日联调**：`docs/smoke-test-lian-tiao.md`（按 A→B→C→D 勾选）
 
 ## 测试文档
 
