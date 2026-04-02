@@ -19,6 +19,8 @@ const {
   getHouseholdId,
   setHouseholdId,
   getUserId,
+  getSubscribeMorningTmplIds,
+  setSubscribeMorningTmplIds,
 } = require("../../services/apiConfig");
 
 Page({
@@ -38,6 +40,7 @@ Page({
     apiBaseUrl: "",
     cloudEnvId: "",
     authToken: "",
+    subscribeMorningTmplIds: "",
     myHouseholds: [],
   },
 
@@ -50,6 +53,7 @@ Page({
       apiBaseUrl: getApiBaseUrl(),
       cloudEnvId: getCloudEnvId(),
       authToken: getAuthToken(),
+      subscribeMorningTmplIds: (getSubscribeMorningTmplIds() || []).join(","),
     });
     if (getBackendMode() === "cloudbase") {
       try {
@@ -127,10 +131,15 @@ Page({
     this.setData({ cloudEnvId: e.detail.value || "" });
   },
 
+  onSubscribeTmplInput(e) {
+    this.setData({ subscribeMorningTmplIds: e.detail.value || "" });
+  },
+
   onSaveApiConfig() {
     setApiBaseUrl(this.data.apiBaseUrl);
     setCloudEnvId(this.data.cloudEnvId);
     setAuthToken(this.data.authToken);
+    setSubscribeMorningTmplIds(this.data.subscribeMorningTmplIds);
     if (wx.cloud && this.data.cloudEnvId) {
       wx.cloud.init({
         env: this.data.cloudEnvId,

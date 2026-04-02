@@ -1,4 +1,5 @@
 const service = require("../../services/familyService");
+const api = require("../../services/apiConfig");
 const { getSeniorMode, getUserRole } = require("../../utils/storage");
 const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
 
@@ -111,5 +112,28 @@ Page({
 
   onViewFamilyDynamics() {
     wx.switchTab({ url: "/pages/memories/index" });
+  },
+
+  onSubscribeMorningBrief() {
+    const tmplIds = api.getSubscribeMorningTmplIds();
+    if (!tmplIds.length) {
+      wx.showModal({
+        title: "订阅晨报",
+        content: "请先在「我的 → 接口配置」填写微信公众平台分配的订阅消息模板 ID（逗号分隔，最多 3 个）。",
+        showCancel: false,
+      });
+      return;
+    }
+    wx.requestSubscribeMessage({
+      tmplIds,
+      success: (res) => {
+        const accept = Object.keys(res).filter((k) => res[k] === "accept");
+        wx.showToast({
+          title: accept.length ? `已授权 ${accept.length} 条` : "可稍后重试",
+          icon: "none",
+        });
+      },
+      fail: () => wx.showToast({ title: "订阅调用失败", icon: "none" }),
+    });
   },
 });

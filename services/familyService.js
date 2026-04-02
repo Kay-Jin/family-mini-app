@@ -114,6 +114,25 @@ async function dissolveHousehold() {
   api.setHouseholdId("");
 }
 
+function listInviteCodes() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.listInviteCodes());
+  if (mode === "cloudbase") return cloud.listInviteCodes();
+  return request(`/households/${getHouseholdId()}/invite_codes`).then((res) => {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.data)) return res.data;
+    if (res && Array.isArray(res.items)) return res.items;
+    return [];
+  });
+}
+
+function updateHouseholdName(name) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.updateHouseholdName(name));
+  if (mode === "cloudbase") return cloud.updateHouseholdName(name);
+  return request(`/households/${getHouseholdId()}`, "PATCH", { name });
+}
+
 function getVisibility() {
   const mode = getBackendMode();
   if (mode === "mock") return Promise.resolve(mock.getVisibility());
@@ -190,6 +209,8 @@ module.exports = {
   getHouseholdSummary,
   revokeInviteCode,
   dissolveHousehold,
+  listInviteCodes,
+  updateHouseholdName,
   getVisibility,
   updateVisibility,
   getCheckinPolicy,

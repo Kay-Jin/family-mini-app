@@ -16,6 +16,8 @@ const KEY_BACKEND_MODE = "backend_mode";
 const KEY_CLOUD_ENV_ID = "cloud_env_id";
 const KEY_HOUSEHOLD_ID = "household_id";
 const KEY_USER_ID = "user_id";
+/** 逗号分隔，最多 3 个；用于晨报「一次性订阅」`wx.requestSubscribeMessage` */
+const KEY_SUBSCRIBE_MORNING_TMPL = "subscribe_morning_tmpl_ids";
 
 function getApiBaseUrl() {
   return wx.getStorageSync(KEY_API_BASE_URL) || DEFAULT_API_BASE_URL;
@@ -119,6 +121,19 @@ function setUserId(id) {
   wx.setStorageSync(KEY_USER_ID, v);
 }
 
+function getSubscribeMorningTmplIds() {
+  const raw = wx.getStorageSync(KEY_SUBSCRIBE_MORNING_TMPL) || "";
+  return `${raw}`
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function setSubscribeMorningTmplIds(csv) {
+  wx.setStorageSync(KEY_SUBSCRIBE_MORNING_TMPL, (csv || "").trim());
+}
+
 module.exports = {
   DEFAULT_API_BASE_URL,
   DEFAULT_USE_MOCK,
@@ -139,4 +154,6 @@ module.exports = {
   setHouseholdId,
   getUserId,
   setUserId,
+  getSubscribeMorningTmplIds,
+  setSubscribeMorningTmplIds,
 };

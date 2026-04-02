@@ -38,6 +38,18 @@ page {
   justify-content: center;
 }
 
+.btn-secondary {
+  margin-top: 16rpx;
+  background: #e8e2d8;
+  color: #2a221b;
+  border-radius: 14rpx;
+  min-height: 72rpx;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .senior {
   font-size: 34rpx;
 }

@@ -24,7 +24,7 @@
 - `leaveHousehold`（含 `nextHouseholdId`）
 - `updateMemberRole`
 - `createInviteCode`（**`meta.codeSuffix`** 为后 4 位；含 `maxUses`、`role`）
-- `revokeInviteCode`、`dissolveHousehold`
+- `revokeInviteCode`、`dissolveHousehold`、`updateHouseholdName`
 
 **建议在云控制台创建空集合** `family_audit_logs`，权限 **仅管理员 / 云函数可写**，控制台可读。
 
@@ -46,7 +46,10 @@
 | 变量 | 含义 |
 |------|------|
 | `AUDIT_FAIL_STRICT=1` | 写 **`family_audit_logs` 失败则整笔请求报错**（需已建集合并配置好权限）。默认不写或 `0`：**仅打日志，不阻断**。 |
-| `DISABLE_RATE_LIMIT=1` | 关闭 **`joinHousehold` / `createHousehold`** 的分钟级限流。默认不限：约 **24 次/分钟/人** 加入尝试、**8 次/分钟/人** 创建家庭。 |
+| `DISABLE_RATE_LIMIT=1` | 关闭 **`joinHousehold` / `createHousehold` / `dissolveHousehold`** 的分钟级限流。 |
+| `RL_CREATE_HOUSEHOLD_PER_MIN` | 创建家庭上限（默认 **8**） |
+| `RL_JOIN_HOUSEHOLD_PER_MIN` | 加入尝试上限（默认 **24**） |
+| `RL_DISSOLVE_HOUSEHOLD_PER_MIN` | 解散家庭上限（默认 **4**） |
 
 限流依赖集合 **`family_rate_limit`**（可按文档 ID 自增计数）；**不存在时 `bumpRateLimit` 会失败并 fail-open 放行**，与审计默认策略一致。
 

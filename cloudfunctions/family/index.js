@@ -11,6 +11,19 @@ function isRateLimitEnabled() {
   return process.env.DISABLE_RATE_LIMIT !== "1" && process.env.DISABLE_RATE_LIMIT !== "true";
 }
 
+function rateLimitCreateHousehold() {
+  const v = parseInt(process.env.RL_CREATE_HOUSEHOLD_PER_MIN, 10);
+  return Number.isFinite(v) && v > 0 ? v : 8;
+}
+function rateLimitJoinHousehold() {
+  const v = parseInt(process.env.RL_JOIN_HOUSEHOLD_PER_MIN, 10);
+  return Number.isFinite(v) && v > 0 ? v : 24;
+}
+function rateLimitDissolveHousehold() {
+  const v = parseInt(process.env.RL_DISSOLVE_HOUSEHOLD_PER_MIN, 10);
+  return Number.isFinite(v) && v > 0 ? v : 4;
+}
+
 /** 按 openid + 分钟桶计数；集合 `family_rate_limit` 可选，失败则放行（fail-open） */
 async function bumpRateLimit(openid, bucketPrefix, limitPerMinute) {
   if (!isRateLimitEnabled() || !openid || !limitPerMinute) return true;
@@ -232,7 +245,7 @@ exports.main = async (event) => {
     }
 
     if (action === "createHousehold") {
-      if (!(await bumpRateLimit(OPENID, "createHousehold", 8))) {
+      if (!(await bumpRateLimit(OPENID, "createHousehold", rateLimitCreateHousehold()))) {
         return { ok: false, message: "操作过于频繁，请稍后再试" };
       }
       const reqId = `${event.clientRequestId || ""}`.trim().slice(0, 80);
@@ -315,7 +328,7 @@ exports.main = async (event) => {
     }
 
     if (action === "joinHousehold") {
-      if (!(await bumpRateLimit(OPENID, "joinHousehold", 24))) {
+      if (!(await bumpRateLimit(OPENID, "joinHousehold", rateLimitJoinHousehold()))) {
         return { ok: false, message: "尝试次数过多，请稍后再试" };
       }
       const rawCode = `${event.inviteCode || event.code || ""}`.trim().toUpperCase();
@@ -472,7 +485,7 @@ exports.main = async (event) => {
     }
 
     if (action === "dissolveHousehold") {
-      if (!(await bumpRateLimit(OPENID, "dissolveHousehold", 4))) {
+      if (!(await bumpRateLimit(OPENID, "dissolveHousehold", rateLimitDissolveHousehold()))) {
         return { ok: false, message: "操作过于频繁，请稍后再试" };
       }
       const h = await db.collection("households").doc(householdId).get();
@@ -506,6 +519,59 @@ exports.main = async (event) => {
     const householdGone = await assertHouseholdActive(householdId);
     if (householdGone) return householdGone;
 
+    if (action === "listInviteCodes") {
+      const rows = await db.collection("invite_codes").where({ householdId }).limit(100).get();
+      const now = Date.now();
+      const list = rows.data
+        .map((r) => {
+          const maxU = r.maxUses != null && Number(r.maxUses) > 0 ? Number(r.maxUses) : 1;
+          let used = r.usedCount != null ? Number(r.usedCount) : 0;
+          if (r.usedAt && used < 1) used = 1;
+          const expired = r.expiresAt && new Date(r.expiresAt).getTime() < now;
+          const revoked = !!r.revokedAt;
+          const exhausted = used >= maxU;
+          let status = "active";
+          if (revoked) status = "revoked";
+          else if (exhausted) status = "exhausted";
+          else if (expired) status = "expired";
+          return {
+            _id: r._id,
+            code: r.code,
+            role: r.role,
+            maxUses: maxU,
+            usedCount: used,
+            expiresAt: r.expiresAt,
+            revokedAt: r.revokedAt || null,
+            createdAt: r.createdAt,
+            createdByOpenid: r.createdBy || "",
+            status,
+          };
+        })
+        .sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        })
+        .slice(0, 50);
+      return { ok: true, data: list };
+    }
+
+    if (action === "updateHouseholdName") {
+      const name = `${event.name || event.householdName || ""}`.trim();
+      if (!name) return { ok: false, message: "请填写家庭名称" };
+      const h = await db.collection("households").doc(householdId).get();
+      if (!h.data) return { ok: false, message: "家庭不存在" };
+      if (h.data.dissolvedAt) return { ok: false, message: "家庭已解散" };
+      if (h.data.createdBy !== OPENID) {
+        return { ok: false, message: "仅家庭创建者可修改名称" };
+      }
+      await db.collection("households").doc(householdId).update({
+        data: { name, nameUpdatedAt: new Date() },
+      });
+      await tryAudit(OPENID, "updateHouseholdName", householdId, { name });
+      return { ok: true, data: { name } };
+    }
+
     if (action === "revokeInviteCode") {
       const code = `${event.code || event.inviteCode || ""}`.trim().toUpperCase();
       if (!code) return { ok: false, message: "请填写邀请码" };
@@ -513,8 +579,10 @@ exports.main = async (event) => {
       if (!rows.data.length) return { ok: false, message: "邀请码不存在" };
       const inv = rows.data[0];
       if (inv.householdId !== householdId) return { ok: false, message: "无权作废该邀请码" };
-      if (inv.createdBy !== OPENID) {
-        return { ok: false, message: "仅邀请码创建者可作废" };
+      const hh = await db.collection("households").doc(householdId).get();
+      const isHouseCreator = hh.data && hh.data.createdBy === OPENID;
+      if (inv.createdBy !== OPENID && !isHouseCreator) {
+        return { ok: false, message: "仅邀请码创建者或家庭创建者可作废" };
       }
       if (inv.revokedAt) return { ok: false, message: "邀请码已作废" };
       const cap = inv.maxUses != null && Number(inv.maxUses) > 0 ? Number(inv.maxUses) : 1;

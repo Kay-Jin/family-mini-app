@@ -148,6 +148,15 @@ function dissolveHousehold() {
   return { householdId: null };
 }
 
+function listInviteCodes() {
+  return [];
+}
+
+function updateHouseholdName(name) {
+  void name;
+  return { name: name || "演示家庭" };
+}
+
 function getCheckinPolicy() {
   return { ...checkInPolicy };
 }
@@ -226,6 +235,8 @@ module.exports = {
   getHouseholdSummary,
   revokeInviteCode,
   dissolveHousehold,
+  listInviteCodes,
+  updateHouseholdName,
   getCheckinPolicy,
   updateCheckinPolicy,
   getCheckinAlerts,

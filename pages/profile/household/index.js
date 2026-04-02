@@ -13,6 +13,9 @@ Page({
     revokeCode: "",
     summary: null,
     isHouseholdCreator: false,
+    inviteList: [],
+    currentOpenid: "",
+    newHouseholdName: "",
     loading: false,
     error: "",
     seniorMode: false,
@@ -32,9 +35,10 @@ Page({
   async loadData() {
     this.setData({ loading: true, error: "" });
     try {
-      const [members, summary] = await Promise.all([
+      const [members, summary, inviteList] = await Promise.all([
         service.listMembers(),
         service.getHouseholdSummary().catch(() => null),
+        service.listInviteCodes().catch(() => []),
       ]);
       const isHouseholdCreator =
         summary && summary.createdBy && summary.createdBy === api.getUserId();
@@ -42,6 +46,9 @@ Page({
         members,
         summary,
         isHouseholdCreator: !!isHouseholdCreator,
+        inviteList: inviteList || [],
+        currentOpenid: api.getUserId(),
+        newHouseholdName: (summary && summary.name) || "",
         loading: false,
       });
     } catch (err) {
@@ -66,6 +73,38 @@ Page({
       await service.revokeInviteCode(code);
       wx.showToast({ title: "已作废", icon: "success" });
       this.setData({ revokeCode: "" });
+      await this.loadData();
+    } catch (err) {
+      wx.showToast({ title: err.message || "作废失败", icon: "none" });
+    }
+  },
+
+  onNewHouseholdNameInput(e) {
+    this.setData({ newHouseholdName: e.detail.value || "" });
+  },
+
+  async onSaveHouseholdName() {
+    const name = (this.data.newHouseholdName || "").trim();
+    if (!name) {
+      wx.showToast({ title: "请输入家庭名称", icon: "none" });
+      return;
+    }
+    try {
+      await service.updateHouseholdName(name);
+      wx.showToast({ title: "名称已更新", icon: "success" });
+      await this.loadData();
+    } catch (err) {
+      wx.showToast({ title: err.message || "保存失败", icon: "none" });
+    }
+  },
+
+  async onRevokeListItem(e) {
+    const code = (e.currentTarget.dataset.code || "").trim().toUpperCase();
+    if (!code) return;
+    try {
+      await service.revokeInviteCode(code);
+      wx.showToast({ title: "已作废", icon: "success" });
+      await this.loadData();
     } catch (err) {
       wx.showToast({ title: err.message || "作废失败", icon: "none" });
     }

@@ -13,6 +13,7 @@
     <view class="title">每日家庭晨报</view>
     <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
     <view wx:if="{{brief && visibility.share_city_weather}}" class="muted">天气：{{brief.city_weather}}</view>
+    <button wx:if="{{!seniorMode}}" class="btn-secondary" bindtap="onSubscribeMorningBrief">订阅晨报提醒（一次性授权）</button>
   </view>
 
   <view class="card">

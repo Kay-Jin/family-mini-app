@@ -108,4 +108,10 @@ module.exports = {
   dissolveHousehold() {
     return call("dissolveHousehold");
   },
+  listInviteCodes() {
+    return call("listInviteCodes");
+  },
+  updateHouseholdName(name) {
+    return call("updateHouseholdName", { name });
+  },
 };

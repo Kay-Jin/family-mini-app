@@ -1,6 +1,18 @@
 <view class="container {{seniorMode ? 'senior' : ''}}">
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
+
+  <view class="card" wx:if="{{isHouseholdCreator}}">
+    <view class="title">家庭名称</view>
+    <input
+      class="input-like"
+      placeholder="家庭名称"
+      value="{{newHouseholdName}}"
+      bindinput="onNewHouseholdNameInput"
+    />
+    <button class="btn-primary" bindtap="onSaveHouseholdName">保存名称</button>
+  </view>
+
   <view class="card">
     <view class="title">生成邀请码</view>
     <radio-group bindchange="onInviteRoleChange">
@@ -35,6 +47,26 @@
       bindinput="onRevokeCodeInput"
     />
     <button class="btn-primary" bindtap="onRevokeInvite">作废该邀请码</button>
+  </view>
+
+  <view class="card">
+    <view class="title">邀请码列表（最近）</view>
+    <view wx:if="{{!inviteList.length}}" class="muted">暂无记录</view>
+    <view wx:for="{{inviteList}}" wx:key="_id" class="invite-row">
+      <view>
+        {{item.code}} · {{item.role}} · 已用 {{item.usedCount}}/{{item.maxUses}}
+      </view>
+      <view class="muted">状态：{{item.status}}</view>
+      <button
+        wx:if="{{item.status === 'active' && (isHouseholdCreator || item.createdByOpenid === currentOpenid)}}"
+        class="btn-mini-revoke"
+        size="mini"
+        bindtap="onRevokeListItem"
+        data-code="{{item.code}}"
+      >
+        作废
+      </button>
+    </view>
   </view>
 
   <view class="card danger-zone" wx:if="{{isHouseholdCreator}}">

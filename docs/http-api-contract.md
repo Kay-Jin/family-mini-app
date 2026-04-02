@@ -22,9 +22,20 @@
 
 - **POST** `/households/:householdId/invite_codes/revoke`
 - **Body**：`{ "code": "ADU-XXXXXX" }`
-- **语义**：将该码标记为不可用（等价云侧 `revokedAt` + `usedCount` 顶满）。
+- **语义**：将该码标记为不可用（等价云侧 `revokedAt` + `usedCount` 顶满）。**家庭创建者**或**码创建者**可操作（与云函数一致）。
+
+### 列表
+
+- **GET** `/households/:householdId/invite_codes`
+- **Response**：数组，或 `{ "data": [...] }` / `{ "items": [...] }`；元素字段建议与云函数 `listInviteCodes` 对齐（`code`、`role`、`maxUses`、`usedCount`、`status`、`createdByOpenid`、`expiresAt` 等）。
 
 ## 家庭
+
+### 修改名称
+
+- **PATCH** `/households/:householdId`
+- **Body**：`{ "name": "新名称" }`
+- **语义**：仅家庭创建者可改（与云函数 `updateHouseholdName` 一致）。
 
 ### 摘要（创建者判断等）
 

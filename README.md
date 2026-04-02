@@ -98,7 +98,10 @@
 - **今晚本地联调**：`docs/todo-evening-local.md` → `docs/smoke-test-lian-tiao.md`
 - **安全硬化**：`docs/security-hardening.md`（权限 + 可选 `family_audit_logs`）
 - **中期产品**：`docs/product-roadmap.md`
-- **HTTP 自建后端**：`docs/http-api-contract.md`
+- **HTTP 自建后端**：`docs/http-api-contract.md` · 参照 `tools/http-stub/README.md`
+- **晨报订阅**：`docs/morning-brief-subscribe.md`
+- **合规提纲**：`docs/COMPLIANCE.md`
+- **权限规则索引**：`docs/cloud-rules-examples/README.md`
 - 完善 CloudBase 数据权限规则（按 household 成员限制读写）
 - 增加云函数/消息订阅用于晨报推送
 

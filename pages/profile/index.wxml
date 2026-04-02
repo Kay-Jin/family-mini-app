@@ -29,6 +29,12 @@
     <input wx:if="{{backendMode === 'http'}}" class="input" placeholder="API Base URL" value="{{apiBaseUrl}}" bindinput="onApiInput" />
     <input wx:if="{{backendMode === 'cloudbase'}}" class="input" placeholder="CloudBase Env ID" value="{{cloudEnvId}}" bindinput="onCloudEnvInput" />
     <input wx:if="{{backendMode !== 'mock'}}" class="input" placeholder="Bearer Token（可选）" value="{{authToken}}" bindinput="onTokenInput" />
+    <input
+      class="input"
+      placeholder="晨报订阅模板 ID（逗号分隔，最多 3 个，可选）"
+      value="{{subscribeMorningTmplIds}}"
+      bindinput="onSubscribeTmplInput"
+    />
     <button class="btn-primary" bindtap="onSaveApiConfig">保存接口配置</button>
   </view>
 
