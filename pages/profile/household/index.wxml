@@ -13,6 +13,13 @@
         <text>长辈</text>
       </label>
     </radio-group>
+    <view class="muted" style="margin-top: 12rpx;">可用人次（1–100，用完即止）</view>
+    <input
+      class="input-like"
+      type="number"
+      value="{{inviteMaxUses}}"
+      bindinput="onInviteMaxUsesInput"
+    />
     <button class="btn-primary" bindtap="onCreateInviteCode">生成邀请码</button>
     <view wx:if="{{inviteCode}}" class="muted">邀请码：{{inviteCode}}</view>
     <button wx:if="{{inviteCode}}" bindtap="onCopyInviteCode">复制邀请码</button>

@@ -7,6 +7,7 @@ Page({
     members: [],
     roleRange: ["adult", "senior"],
     inviteRole: "adult",
+    inviteMaxUses: 1,
     inviteCode: "",
     loading: false,
     error: "",
@@ -53,9 +54,14 @@ Page({
     this.setData({ inviteRole: e.detail.value || "adult" });
   },
 
+  onInviteMaxUsesInput(e) {
+    const n = parseInt(e.detail.value, 10);
+    this.setData({ inviteMaxUses: Number.isNaN(n) || n < 1 ? 1 : Math.min(100, n) });
+  },
+
   async onCreateInviteCode() {
     try {
-      const result = await service.createInviteCode(this.data.inviteRole);
+      const result = await service.createInviteCode(this.data.inviteRole, this.data.inviteMaxUses);
       this.setData({ inviteCode: result.code || "" });
       wx.showToast({ title: "邀请码已生成", icon: "success" });
     } catch (err) {

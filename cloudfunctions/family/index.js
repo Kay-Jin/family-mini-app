@@ -53,8 +53,11 @@ async function migrateMemberDocToJoinTable(doc) {
 function resolveActiveHouseholdId(membershipRows, activeFromClient, legacyHouseholdId) {
   const ids = [...new Set(membershipRows.map((m) => m.householdId).filter(Boolean))];
   if (activeFromClient && ids.includes(activeFromClient)) return activeFromClient;
-  if (legacyHouseholdId && ids.includes(legacyHouseholdId)) return legacyHouseholdId;
-  if (ids.length >= 1) return ids[0];
+  if (ids.length === 1) return ids[0];
+  if (ids.length > 1) {
+    if (legacyHouseholdId && ids.includes(legacyHouseholdId)) return legacyHouseholdId;
+    return null;
+  }
   return legacyHouseholdId || null;
 }
 
@@ -215,7 +218,16 @@ exports.main = async (event) => {
       const inv = inviteRows.data[0];
       const exp = inv.expiresAt ? new Date(inv.expiresAt) : null;
       if (exp && exp.getTime() < Date.now()) return { ok: false, message: "邀请码已过期" };
-      if (inv.usedAt) return { ok: false, message: "邀请码已使用" };
+      const maxUses =
+        inv.maxUses != null && Number(inv.maxUses) > 0 ? Number(inv.maxUses) : 1;
+      let usedCount = inv.usedCount != null ? Number(inv.usedCount) : 0;
+      if (inv.usedAt && usedCount < 1) usedCount = 1;
+      if (usedCount >= maxUses) {
+        return {
+          ok: false,
+          message: maxUses === 1 ? "邀请码已使用" : "邀请码已达使用上限",
+        };
+      }
 
       const hid = inv.householdId;
       const joinRole = inv.role === "senior" ? "senior" : "adult";
@@ -273,8 +285,10 @@ exports.main = async (event) => {
 
       await upsertHouseholdMember(OPENID, hid, joinRole, displayName);
 
+      const _ = db.command;
       await db.collection("invite_codes").doc(inv._id).update({
         data: {
+          usedCount: _.inc(1),
           usedAt: new Date(),
           usedByOpenid: OPENID,
         },
@@ -414,10 +428,15 @@ exports.main = async (event) => {
       const role = event.role === "senior" ? "senior" : "adult";
       const prefix = role === "senior" ? "SEN" : "ADU";
       const code = `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      let maxUses = parseInt(event.maxUses, 10);
+      if (Number.isNaN(maxUses) || maxUses < 1) maxUses = 1;
+      if (maxUses > 100) maxUses = 100;
       const payload = {
         householdId,
         code,
         role,
+        maxUses,
+        usedCount: 0,
         createdBy: OPENID,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),

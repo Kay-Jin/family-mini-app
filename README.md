@@ -78,7 +78,7 @@
 - `health_snapshots`
 - `album_items`
 - `members`（Onboarding / 成员：`openid`、`uid`、`display_name`、`householdId`、`role` 等）
-- `invite_codes`（成功加入后写入 `usedAt`、`usedByOpenid`，**邀请码一次性**）
+- `invite_codes`（`maxUses` / `usedCount`；每成功加入一名新成员 `usedCount`+1，达上限则不可用；兼容旧数据仅 `usedAt` 的单次码）
 - `visibility_settings`
 - `checkin_policies`
 - `checkin_alerts`
@@ -100,6 +100,10 @@
 ## 数据库权限（草稿）
 
 - 见 `docs/cloud-database-rules.md`（内测/MVP 规则示例与上线检查项）
+
+## 部署清单（1 → 2 → 3）
+
+- 见 `docs/deploy-checklist.md`（控制台集合、上传云函数、端上验证）
 
 ## 测试文档
 

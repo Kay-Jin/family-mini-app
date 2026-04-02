@@ -7,6 +7,23 @@
     <button class="btn-primary" bindtap="onRetryBootstrap">重试</button>
   </view>
 
+  <block wx:if="{{!loading && !bootstrapError && mode === 'pickHousehold'}}">
+    <view class="card">
+      <view class="title">选择要进入的家庭</view>
+      <view class="muted">你加入了多个家庭，请选择一个作为当前活跃家庭。</view>
+    </view>
+    <view
+      wx:for="{{myHouseholds}}"
+      wx:key="householdId"
+      class="pick-row"
+      bindtap="onPickHousehold"
+      data-hid="{{item.householdId}}"
+    >
+      <text>{{item.name || '家庭'}}</text>
+      <text class="muted"> · {{item.role}}</text>
+    </view>
+  </block>
+
   <block wx:if="{{!loading && !bootstrapError && mode === 'choose'}}">
     <view class="card">
       <view class="title">欢迎使用</view>

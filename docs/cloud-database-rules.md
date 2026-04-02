@@ -80,5 +80,5 @@
 
 - [ ] 所有敏感集合关闭「所有用户可写」。
 - [ ] 确认云函数已部署且小程序仅通过 `family` 云函数写库。
-- [ ] `invite_codes` 已支持 `usedAt` / `usedByOpenid`（一次性邀请在 join 时标记）。
+- [ ] `invite_codes` 已支持 `maxUses`、`usedCount`（多人依次加入），并与旧版仅 `usedAt` 的单次码兼容。
 - [ ] `household_members` 已创建，并与现有 `members` 数据完成迁移（首次 `getOrCreateUser` 会自动补一行 legacy 数据）。

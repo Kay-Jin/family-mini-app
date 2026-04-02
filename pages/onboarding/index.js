@@ -10,6 +10,8 @@ Page({
     inviteCode: "",
     displayName: "",
     submitting: false,
+    myHouseholds: [],
+    cloudOpenid: "",
   },
 
   onLoad() {
@@ -36,7 +38,61 @@ Page({
       wx.switchTab({ url: "/pages/today/index" });
       return;
     }
+    try {
+      const profile = await auth.getOrCreateUserCloud();
+      if (profile.householdId) {
+        auth.persistProfile(profile);
+        wx.switchTab({ url: "/pages/today/index" });
+        return;
+      }
+      const list = profile.memberships || [];
+      if (list.length > 1) {
+        this.setData({
+          loading: false,
+          mode: "pickHousehold",
+          myHouseholds: list,
+          cloudOpenid: profile.openid || "",
+        });
+        return;
+      }
+      if (list.length === 1) {
+        const only = list[0];
+        auth.persistProfile({
+          householdId: only.householdId,
+          role: only.role,
+          display_name: only.display_name,
+          openid: profile.openid,
+        });
+        wx.switchTab({ url: "/pages/today/index" });
+        return;
+      }
+    } catch (e) {
+      this.setData({
+        loading: false,
+        bootstrapError: e.message || "加载失败",
+      });
+      return;
+    }
     this.setData({ loading: false });
+  },
+
+  onPickHousehold(e) {
+    const hid = e.currentTarget.dataset.hid;
+    if (!hid) return;
+    const item = (this.data.myHouseholds || []).find((h) => h.householdId === hid);
+    if (!item) return;
+    auth.persistProfile({
+      householdId: hid,
+      role: item.role,
+      display_name: item.display_name,
+      openid: this.data.cloudOpenid || api.getUserId(),
+    });
+    try {
+      const app = getApp();
+      if (app && app.globalData) app.globalData.householdId = hid;
+    } catch (err) {}
+    wx.showToast({ title: "已进入家庭", icon: "success" });
+    wx.switchTab({ url: "/pages/today/index" });
   },
 
   onHouseholdNameInput(e) {

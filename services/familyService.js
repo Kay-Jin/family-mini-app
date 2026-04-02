@@ -73,11 +73,11 @@ function updateMemberRole(uid, role) {
   return request(`/households/${getHouseholdId()}/members/${uid}`, "PATCH", { role });
 }
 
-function createInviteCode(role) {
+function createInviteCode(role, maxUses) {
   const mode = getBackendMode();
-  if (mode === "mock") return Promise.resolve({ code: mock.createInviteCode(role) });
-  if (mode === "cloudbase") return cloud.createInviteCode(role);
-  return request(`/households/${getHouseholdId()}/invite_codes`, "POST", { role });
+  if (mode === "mock") return Promise.resolve({ code: mock.createInviteCode(role, maxUses) });
+  if (mode === "cloudbase") return cloud.createInviteCode(role, maxUses);
+  return request(`/households/${getHouseholdId()}/invite_codes`, "POST", { role, max_uses: maxUses });
 }
 
 function getVisibility() {

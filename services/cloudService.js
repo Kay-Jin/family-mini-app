@@ -69,8 +69,8 @@ module.exports = {
   updateMemberRole(uid, role) {
     return call("updateMemberRole", { uid, role });
   },
-  createInviteCode(role) {
-    return call("createInviteCode", { role });
+  createInviteCode(role, maxUses) {
+    return call("createInviteCode", { role, maxUses });
   },
   getVisibility() {
     return call("getVisibility");

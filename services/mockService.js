@@ -130,7 +130,8 @@ function getCheckIns() {
   return [...checkInHistory];
 }
 
-function createInviteCode(role) {
+function createInviteCode(role, maxUses) {
+  void maxUses;
   const prefix = role === "senior" ? "SEN" : "ADU";
   return `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
