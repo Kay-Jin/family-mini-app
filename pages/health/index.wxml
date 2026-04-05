@@ -1,9 +1,10 @@
 <view class="container {{seniorMode ? 'senior' : ''}}">
-  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
     <view class="title">健康数据看板</view>
-    <view class="muted">汇总步数与睡眠（云开发 / 后端接入后展示真实数据）</view>
+    <view class="muted" wx:if="{{isMockBackend}}">当前为本地演示（Mock），以下为示例健康数据。</view>
+    <view class="muted" wx:else>汇总步数与睡眠（云开发 / 后端接入后展示真实数据）</view>
   </view>
 
   <view class="card" wx:for="{{snapshots}}" wx:key="date">
@@ -59,6 +60,16 @@
       <view class="reminder-actions">
         <button size="mini" data-id="{{item.id}}" bindtap="onEditReminder">编辑</button>
         <button size="mini" type="warn" data-id="{{item.id}}" bindtap="onDeleteReminder">删除</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="{{seniorMode ? 'senior' : ''}}" wx:if="{{showTour}}">
+    <view class="tour-mask" catchtap="onDismissTour">
+      <view class="tour-card" catchtap="tourEat">
+        <view class="tour-title">健康</view>
+        <view class="tour-body">查看步数与睡眠摘要，并在此管理用药 / 复诊提醒。若不想分享某项，可在「我的 → 可见性与隐私」中关闭。</view>
+        <button class="btn-primary" bindtap="onDismissTour">知道了</button>
       </view>
     </view>
   </view>

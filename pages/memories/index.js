@@ -1,5 +1,7 @@
 const service = require("../../services/familyService");
-const { getUserRole } = require("../../utils/storage");
+const { getUserRole, getSeniorMode } = require("../../utils/storage");
+const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
+const tour = require("../../utils/tour");
 
 Page({
   data: {
@@ -10,12 +12,26 @@ Page({
     loading: false,
     error: "",
     role: "adult",
+    seniorMode: false,
+    showTour: false,
   },
 
   onShow() {
-    this.setData({ role: getUserRole() });
+    if (!ensureHouseholdForCloudbase()) return;
+    this.setData({
+      role: getUserRole(),
+      seniorMode: getSeniorMode(),
+      showTour: !tour.hasSeenTour("memories"),
+    });
     this.loadData();
   },
+
+  onDismissTour() {
+    tour.markTourSeen("memories");
+    this.setData({ showTour: false });
+  },
+
+  tourEat() {},
 
   async onPullDownRefresh() {
     await this.loadData();

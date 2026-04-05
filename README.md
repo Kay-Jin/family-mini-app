@@ -32,9 +32,14 @@
 - `services/mockService.js`：MVP Mock 数据实现
 - `services/familyService.js`：业务服务层（可切换 Mock / HTTP）
 - `services/http.js`：统一请求封装
-- `services/apiConfig.js`：接口环境配置（`USE_MOCK`、`API_BASE_URL`、`HOUSEHOLD_ID`）
+- `services/apiConfig.js`：接口环境配置（`backend_mode`、`API_BASE_URL`、`getHouseholdId`/`MOCK_HOUSEHOLD_ID`）
+- `services/authService.js`：CloudBase 下 `wx.login`、getOrCreateUser / 创建或加入家庭
+- `services/familyCloudClient.js`：统一封装 `family` 云函数调用与 `{ ok, data }` 解包（避免重复逻辑及 `data` 为假值时误判）
 - `utils/tokens.js`：设计 Token（颜色/间距）
-- `utils/storage.js`：长辈模式本地持久化
+- `utils/storage.js`：长辈模式、求助节流、展示名等本地持久化
+- `utils/routeGuard.js`：CloudBase 模式下无家庭时引导至 onboarding
+- `utils/tour.js`：各 Tab 新手引导（仅本机）
+- `utils/i18n.wxs`：WXML 侧轻量文案（如角色中文）
 
 ## 本地开发
 
@@ -60,16 +65,25 @@
 - `cloudfunctions/family/index.js`
 - `cloudfunctions/family/package.json`
 
-在微信开发者工具中右键 `cloudfunctions/family` 进行“上传并部署：云端安装依赖”。
+在微信开发者工具中右键 `cloudfunctions/family` 进行 **「上传并部署：云端安装依赖」**（修改 `index.js` 后需重新部署方可生效）。
+
+**部署检查清单**
+
+1. 云开发控制台创建数据库集合（见下列表，含 `households`）。
+2. 上传并部署云函数 `family`。
+3. 小程序「我的 → 接口配置」选择 CloudBase 并保存 Env ID，`wx.cloud.init` 会使用该环境。
 
 ### 需要的集合（建议）
 
+- `households`（Onboarding：`name` / `createdBy` / `createdAt`）
+- `household_members`（多家庭：`openid` / `householdId` / `uid` / `display_name` / `role` / `joinedAt`；与 `members` 同步，列表成员/改角色以该集合为准）
 - `morning_briefs`
 - `check_ins`
 - `health_snapshots`
 - `album_items`
-- `members`
-- `invite_codes`
+- `members`（Onboarding / 成员：`openid`、`uid`、`display_name`、`householdId`、`role` 等）
+- `invite_codes`（`maxUses` / `usedCount`；每成功加入一名新成员 `usedCount`+1，达上限则不可用；兼容旧数据仅 `usedAt` 的单次码）
+- `family_audit_logs | family_rate_limit | family_idempotency`（**可选**，见 `docs/security-hardening.md`）
 - `visibility_settings`
 - `checkin_policies`
 - `checkin_alerts`
@@ -103,8 +117,8 @@ npm test
 
 ### 运维三项（部署 / 索引 / 管理员）
 
-1. **部署云函数与触发器**：见 [`docs/cloud-deploy.md`](docs/cloud-deploy.md)；命令行上传：`npm run deploy:cloud`（需配置 `MINIPROGRAM_PRIVATE_KEY_PATH` 与 `CLOUDBASE_ENV_ID`）。  
-2. **数据库索引**：见 [`docs/cloud-database-indexes.md`](docs/cloud-database-indexes.md)，按表在控制台创建。  
+1. **部署云函数与触发器**：见 [`docs/cloud-deploy.md`](docs/cloud-deploy.md)；命令行上传：`npm run deploy:cloud`（需配置 `MINIPROGRAM_PRIVATE_KEY_PATH` 与 `CLOUDBASE_ENV_ID`）。
+2. **数据库索引**：见 [`docs/cloud-database-indexes.md`](docs/cloud-database-indexes.md），按表在控制台创建。
 3. **首位管理员**：云函数 `bootstrapHouseAdmin`；小程序在 **我的**（CloudBase 模式）点「认领家庭管理员」，仅当当前家庭尚无 `role: admin` 时成功。
 
 ### 说明
@@ -113,12 +127,29 @@ npm test
 - 所有业务操作通过云函数 `family` 的 `action` 分发处理
 - `openid` 由云函数侧获取并用于写入/鉴权基础字段
 - 云函数返回的文档会带 `_id`；`services/cloudService.js` 会映射为 `id` 供 WXML `wx:key` 使用
+- **Onboarding**：`getOrCreateUser` / `createHousehold` / `joinHousehold`；「我的」在 CloudBase 模式下可 **退出当前家庭**（`leaveHousehold`）
+- **代码结构**：业务 API 入口统一在 `familyService`；云函数 RPC 解包在 `familyCloudClient`（避免 `auth`/`cloud` 各写一套）
 
 ## 下一步建议
 
+- **今晚本地联调**：`docs/todo-evening-local.md` → `docs/smoke-test-lian-tiao.md`
+- **安全硬化**：`docs/security-hardening.md`（权限 + 可选 `family_audit_logs`）
+- **中期产品**：`docs/product-roadmap.md`
+- **HTTP 自建后端**：`docs/http-api-contract.md` · 参照 `tools/http-stub/README.md`
+- **晨报订阅**：`docs/morning-brief-subscribe.md`
+- **合规提纲**：`docs/COMPLIANCE.md`
+- **权限规则索引**：`docs/cloud-rules-examples/README.md`
 - 完善 CloudBase 数据权限规则（按 household 成员限制读写）
 - 增加云函数/消息订阅用于晨报推送
-- 结合真实业务补齐 household 创建/加入流程
+
+## 数据库权限（草稿）
+
+- 见 `docs/cloud-database-rules.md`（内测/MVP 规则示例与上线检查项）
+
+## 部署清单（1 → 2 → 3）
+
+- 见 `docs/deploy-checklist.md`（控制台集合、上传云函数、端上验证）
+- **今日联调**：`docs/smoke-test-lian-tiao.md`（按 A→B→C→D 勾选）
 
 ## 测试文档
 

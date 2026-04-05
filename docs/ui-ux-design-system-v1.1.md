@@ -110,7 +110,7 @@ Senior 变体：
 
 ### 4.1 页面状态
 
-- `loading`：骨架或文案“加载中...”
+- `loading`：骨架、`loading-hint`（轻脉冲 + 圆点，见 `app.wxss`）或文案「正在加载」
 - `empty`：说明当前无数据 + 操作引导
 - `error`：错误卡片 + 可重试
 - `offline`：提示网络不可用
@@ -150,13 +150,43 @@ Senior 变体：
 
 ## 5.4 我的（`pages/profile`）
 
-- 分组顺序：账号与模式 -> 角色 -> 后端配置 -> 权限/隐私入口
+- 分组顺序：账号与长辈模式 -> 家庭组织 / 可见性入口 -> **高级与调试**（折叠：角色模拟、接口配置、引导重置）
 - 配置项需“修改即有反馈”
 - 避免在一屏中堆叠过多复杂表单
 
 ## 6. 设计到开发映射
 
-- 设计令牌：
+### 6.1 `app.wxss` 实参对照（维护时请同步改此处）
+
+小程序端未使用 CSS Variables，下列为**当前全局样式文件中的实际取值**，便于与设计 Token 对表。
+
+| 设计含义 | 选择器 / 场景 | 当前值 |
+|---|---|---|
+| 页面背景 | `page` background | `#f7f1e8` |
+| 主文字色 | `page` color / `.title` | `#2a221b` |
+| 次要文字 | `.muted` | `#655a4f` |
+| 页面水平内边距 | `.container` padding | `24rpx` |
+| 卡片背景 | `.card` | `#ffffff` |
+| 卡片圆角 | `.card` | `20rpx` |
+| 卡片内边距 | `.card` | `24rpx` |
+| 卡片间距 | `.card` margin-bottom | `20rpx` |
+| 卡片阴影 | `.card` box-shadow | `0 8rpx 20rpx rgba(86, 122, 88, 0.1)` |
+| 卡片描边 | `.card` border | `1rpx solid rgba(42, 34, 27, 0.06)` |
+| 标题字号 | `.title` | `36rpx` |
+| 标题下边距 | `.title` | `16rpx` |
+| 主按钮背景 | `.btn-primary` | `#567a58` |
+| 主按钮圆角 / 最小高 | `.btn-primary` | `14rpx` / `88rpx` |
+| 次按钮背景 | `.btn-secondary` | `#e8e2d8` |
+| 次按钮顶距 | `.btn-secondary` margin-top | `16rpx` |
+| 次按钮字号 | `.btn-secondary` | `28rpx` |
+| 长辈模式正文字号 | `.senior` | `34rpx` |
+| 长辈模式标题 | `.senior .title` | `42rpx` |
+| 长辈模式按钮最小高 / 字号 | `.senior .btn-primary` 等 | `96rpx` / `34rpx` |
+| 引导遮罩背景 | `.tour-mask` | `rgba(42, 34, 27, 0.45)` |
+
+**按钮规范**：业务场景下的 `<button>` 须带 `class`（`btn-primary` / `btn-secondary` 或页面专用类如 `btn-leave`、`btn-dissolve`、`btn-mini-revoke`），避免依赖系统默认皮肤导致多机型不一致。
+
+- 设计令牌（色板参考）：
   - [utils/tokens.js](../utils/tokens.js)
 - 全局样式：
   - [app.wxss](../app.wxss)

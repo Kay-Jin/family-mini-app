@@ -3,54 +3,51 @@ const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
-function bjDateKey(now = new Date()) {
-  return now.toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
+function isAuditStrict() {
+  return process.env.AUDIT_FAIL_STRICT === "1" || process.env.AUDIT_FAIL_STRICT === "true";
 }
 
-function bjMinutesFromMidnight(now = new Date()) {
-  const s = now.toLocaleTimeString("en-GB", {
-    timeZone: "Asia/Shanghai",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const [h, m] = s.split(":").map((x) => parseInt(x, 10) || 0);
-  return h * 60 + m;
+function isRateLimitEnabled() {
+  return process.env.DISABLE_RATE_LIMIT !== "1" && process.env.DISABLE_RATE_LIMIT !== "true";
 }
 
-function bjHour(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Shanghai",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-  return parseInt(parts.find((p) => p.type === "hour").value, 10);
+function rateLimitCreateHousehold() {
+  const v = parseInt(process.env.RL_CREATE_HOUSEHOLD_PER_MIN, 10);
+  return Number.isFinite(v) && v > 0 ? v : 8;
+}
+function rateLimitJoinHousehold() {
+  const v = parseInt(process.env.RL_JOIN_HOUSEHOLD_PER_MIN, 10);
+  return Number.isFinite(v) && v > 0 ? v : 24;
+}
+function rateLimitDissolveHousehold() {
+  const v = parseInt(process.env.RL_DISSOLVE_HOUSEHOLD_PER_MIN, 10);
+  return Number.isFinite(v) && v > 0 ? v : 4;
 }
 
-function bjDayOfWeek(now = new Date()) {
-  const s = now.toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
-  const [y, mo, d] = s.split("-").map(Number);
-  return new Date(Date.UTC(y, mo - 1, d)).getUTCDay();
-}
-
-function parseHm(str) {
-  if (!str || typeof str !== "string") return 8 * 60;
-  const [h, m] = str.split(":").map((x) => parseInt(x, 10) || 0);
-  return h * 60 + m;
-}
-
-function createdAtToBjDateKey(createdAt) {
-  const d = createdAt instanceof Date ? createdAt : new Date(createdAt);
-  return bjDateKey(d);
-}
-
-function createdAtToBjMinutes(createdAt) {
-  const d = createdAt instanceof Date ? createdAt : new Date(createdAt);
-  return bjMinutesFromMidnight(d);
-}
-
-function timeInWindow(mins, startMin, endMin) {
-  return mins >= startMin && mins <= endMin;
+/** 按 openid + 分钟桶计数；集合 `family_rate_limit` 可选，失败则放行（fail-open） */
+async function bumpRateLimit(openid, bucketPrefix, limitPerMinute) {
+  if (!isRateLimitEnabled() || !openid || !limitPerMinute) return true;
+  const windowMin = Math.floor(Date.now() / 60000);
+  const rawId = `${bucketPrefix}_${openid}_${windowMin}`;
+  const docId = rawId.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 90);
+  const _ = db.command;
+  try {
+    const col = db.collection("family_rate_limit");
+    const doc = await col.doc(docId).get();
+    if (!doc.data) {
+      await col.doc(docId).set({ data: { n: 1, at: new Date() } });
+      return true;
+    }
+    if (doc.data.n >= limitPerMinute) {
+      console.warn("[family_rate_limit]", bucketPrefix, doc.data.n);
+      return false;
+    }
+    await col.doc(docId).update({ data: { n: _.inc(1), at: new Date() } });
+    return true;
+  } catch (e) {
+    console.error("[family_rate_limit_error]", bucketPrefix, e && e.message);
+    return true;
+  }
 }
 
 async function ensureVisibility(householdId, openid) {
@@ -75,213 +72,531 @@ async function ensureVisibility(householdId, openid) {
   return fallback;
 }
 
-async function getDisplayName(openid) {
-  const memberRes = await db.collection("members").where({ openid }).limit(1).get();
+async function listHouseholdMemberships(openid) {
+  const rows = await db.collection("household_members").where({ openid }).get();
+  return rows.data;
+}
+
+async function migrateMemberDocToJoinTable(doc) {
+  if (!doc || !doc.openid || !doc.householdId) return;
+  const existing = await db
+    .collection("household_members")
+    .where({ openid: doc.openid, householdId: doc.householdId })
+    .limit(1)
+    .get();
+  if (existing.data.length) return;
+  await db.collection("household_members").add({
+    data: {
+      openid: doc.openid,
+      householdId: doc.householdId,
+      uid: doc.openid,
+      role: doc.role || "adult",
+      display_name: doc.display_name || "成员",
+      joinedAt: doc.joinedAt || new Date(),
+    },
+  });
+}
+
+function resolveActiveHouseholdId(membershipRows, activeFromClient, legacyHouseholdId) {
+  const ids = [...new Set(membershipRows.map((m) => m.householdId).filter(Boolean))];
+  if (activeFromClient && ids.includes(activeFromClient)) return activeFromClient;
+  if (ids.length === 1) return ids[0];
+  if (ids.length > 1) {
+    if (legacyHouseholdId && ids.includes(legacyHouseholdId)) return legacyHouseholdId;
+    return null;
+  }
+  return legacyHouseholdId || null;
+}
+
+async function enrichMemberships(rows) {
+  const out = [];
+  for (const m of rows) {
+    let name = "";
+    try {
+      const h = await db.collection("households").doc(m.householdId).get();
+      name = (h.data && h.data.name) || "";
+    } catch (e) {
+      name = "";
+    }
+    out.push({
+      householdId: m.householdId,
+      role: m.role,
+      display_name: m.display_name || "成员",
+      name,
+    });
+  }
+  return out;
+}
+
+async function upsertHouseholdMember(openid, householdId, role, displayName) {
+  const existing = await db.collection("household_members").where({ openid, householdId }).limit(1).get();
+  if (existing.data.length) {
+    await db.collection("household_members").doc(existing.data[0]._id).update({
+      data: {
+        role,
+        display_name: displayName || existing.data[0].display_name || "成员",
+        uid: openid,
+        updatedAt: new Date(),
+      },
+    });
+    return;
+  }
+  await db.collection("household_members").add({
+    data: {
+      openid,
+      householdId,
+      uid: openid,
+      role: role || "adult",
+      display_name: displayName || "成员",
+      joinedAt: new Date(),
+    },
+  });
+}
+
+async function getDisplayNameForHousehold(openid, householdId) {
+  if (!householdId) return "成员";
+  const memberRes = await db.collection("household_members").where({ openid, householdId }).limit(1).get();
   if (memberRes.data.length) return memberRes.data[0].display_name || "成员";
+  const fallback = await db.collection("members").where({ openid }).limit(1).get();
+  if (fallback.data.length) return fallback.data[0].display_name || "成员";
   return "成员";
 }
 
-async function assertCanEditPolicy(householdId, openid) {
-  const m = await db.collection("members").where({ householdId, openid }).limit(1).get();
-  if (!m.data.length) {
-    const err = new Error("非家庭成员，无法修改策略");
-    err.code = "FORBIDDEN";
-    throw err;
+async function assertHouseholdActive(hid) {
+  if (!hid) return { ok: false, message: "householdId is required" };
+  try {
+    const h = await db.collection("households").doc(hid).get();
+    if (!h.data) return { ok: false, message: "家庭不存在" };
+    if (h.data.dissolvedAt) return { ok: false, message: "家庭已解散" };
+  } catch (e) {
+    return { ok: false, message: "家庭不存在" };
   }
-  const role = m.data[0].role || "adult";
-  const admins = await db.collection("members").where({ householdId, role: "admin" }).count();
-  if (admins.total > 0 && role !== "admin") {
-    const err = new Error("仅家庭管理员可修改提醒策略");
-    err.code = "FORBIDDEN";
-    throw err;
-  }
+  return null;
 }
 
-async function countMemberAlertsDay(householdId, memberOpenid, dateKey) {
-  const c = await db
-    .collection("checkin_alerts")
-    .where({ householdId, member_openid: memberOpenid, date_key: dateKey })
-    .count();
-  return c.total || 0;
-}
-
-async function evaluateOnePolicy(policy) {
-  if (!policy.enabled) return { inserted: 0 };
-  const householdId = policy.householdId;
-  const startMin = parseHm(policy.start_time || "08:00");
-  const endMin = parseHm(policy.end_time || "10:00");
-  const threshold = Number(policy.threshold_minutes || 60);
-  const now = new Date();
-  const nowMin = bjMinutesFromMidnight(now);
-  const dateKey = bjDateKey(now);
-
-  if (nowMin < startMin + threshold) return { inserted: 0 };
-  if (nowMin > endMin + threshold + 180) return { inserted: 0 };
-
-  const [membersRes, checkRes] = await Promise.all([
-    db.collection("members").where({ householdId }).get(),
-    db.collection("check_ins").where({ householdId }).orderBy("created_at", "desc").limit(200).get(),
-  ]);
-
-  const members = membersRes.data || [];
-  const checkInsToday = (checkRes.data || []).filter((c) => createdAtToBjDateKey(c.created_at) === dateKey);
-
-  const maxAlerts = policy.second_reminder_enabled ? 2 : 1;
-  const secondGapMin = Number(policy.second_reminder_minutes || 30);
-  let inserted = 0;
-
-  for (const m of members) {
-    const oid = m.openid || m.uid;
-    if (!oid) continue;
-    const hasInWindow = checkInsToday.some((c) => {
-      const same = (c.openid || c.user_uid) === oid;
-      if (!same) return false;
-      const cm = createdAtToBjMinutes(c.created_at);
-      return timeInWindow(cm, startMin, endMin);
-    });
-    if (hasInWindow) continue;
-
-    const n = await countMemberAlertsDay(householdId, oid, dateKey);
-    if (n >= maxAlerts) continue;
-
-    if (policy.second_reminder_enabled && n === 1) {
-      const last = await db
-        .collection("checkin_alerts")
-        .where({ householdId, member_openid: oid, date_key: dateKey })
-        .orderBy("created_at", "desc")
-        .limit(1)
-        .get();
-      if (last.data.length) {
-        const lastAt = new Date(last.data[0].created_at).getTime();
-        if (Date.now() - lastAt < secondGapMin * 60 * 1000) continue;
-      }
-    }
-
-    await db.collection("checkin_alerts").add({
+/**
+ * 可选集合 `family_audit_logs`。
+ * 默认：写失败仅打云日志，不阻断业务。
+ * 严格：云函数环境变量 `AUDIT_FAIL_STRICT=1` 时，写审计失败会抛错并中断当前请求。
+ */
+async function tryAudit(openid, actionName, hid, meta) {
+  try {
+    await db.collection("family_audit_logs").add({
       data: {
-        householdId,
-        member_openid: oid,
-        member_name: m.display_name || "成员",
-        message: `${m.display_name || "成员"}在今日监控时段内尚未报平安`,
-        level: "attention",
-        created_at: new Date(),
-        date_key: dateKey,
+        at: new Date(),
+        openid: openid || "",
+        action: actionName,
+        householdId: hid || null,
+        meta: meta || {},
       },
     });
-    inserted += 1;
+  } catch (e) {
+    const msg = (e && e.message) || String(e);
+    console.error("[family_audit_failed]", actionName, msg);
+    if (isAuditStrict()) {
+      throw new Error(`AUDIT_WRITE_FAILED: ${msg}`);
+    }
   }
-  return { inserted };
-}
-
-async function scanAllCheckinPolicies() {
-  const policies = await db.collection("checkin_policies").where({ enabled: true }).get();
-  let alertsInserted = 0;
-  for (const p of policies.data || []) {
-    const r = await evaluateOnePolicy(p);
-    alertsInserted += r.inserted || 0;
-  }
-  return { scanned: (policies.data || []).length, alertsInserted };
-}
-
-async function generateWeeklyForHousehold(householdId) {
-  const now = new Date();
-  const end = bjDateKey(now);
-  const startDate = new Date(now.getTime() - 7 * 86400000);
-  const start = bjDateKey(startDate);
-
-  const [checks, album, helps, reminders, snaps] = await Promise.all([
-    db.collection("check_ins").where({ householdId }).limit(500).get(),
-    db.collection("album_items").where({ householdId }).limit(500).get(),
-    db.collection("help_requests").where({ householdId }).limit(200).get(),
-    db.collection("care_reminders").where({ householdId }).limit(200).get(),
-    db.collection("health_snapshots").where({ householdId }).orderBy("date", "desc").limit(14).get(),
-  ]);
-
-  const inRange = (ts) => {
-    const k = createdAtToBjDateKey(ts);
-    return k >= start && k <= end;
-  };
-
-  const checkin_count = (checks.data || []).filter((x) => inRange(x.created_at)).length;
-  const album_new_count = (album.data || []).filter((x) => inRange(x.created_at)).length;
-  const highlights = [];
-  (helps.data || [])
-    .filter((x) => inRange(x.created_at))
-    .forEach((h) => {
-      highlights.push({ type: "help", at: h.created_at, detail: h.type });
-    });
-  (reminders.data || [])
-    .filter((r) => r.type === "followup")
-    .forEach((r) => {
-      highlights.push({ type: "followup", title: r.title });
-    });
-
-  let steps = 0;
-  let sleep = 0;
-  let c = 0;
-  (snaps.data || []).forEach((s) => {
-    steps += Number(s.steps || 0);
-    sleep += Number(s.sleep_hours || 0);
-    c += 1;
-  });
-
-  const row = {
-    householdId,
-    week_start: start,
-    week_end: end,
-    checkin_count,
-    album_new_count,
-    health_summary: {
-      steps_avg: c ? Math.round(steps / c) : 0,
-      sleep_avg: c ? Math.round((sleep / c) * 10) / 10 : 0,
-    },
-    highlights,
-    generated_at: new Date(),
-  };
-  await db.collection("weekly_reports").add({ data: row });
-  return row;
-}
-
-async function maybeGenerateWeeklyReports() {
-  if (bjDayOfWeek() !== 0) return { skipped: "not_sunday" };
-  if (bjHour() !== 22) return { skipped: "not_22h" };
-
-  const mem = await db.collection("members").field({ householdId: true }).limit(1000).get();
-  let ids = [...new Set((mem.data || []).map((m) => m.householdId).filter(Boolean))];
-  if (!ids.length) {
-    const pol = await db.collection("checkin_policies").field({ householdId: true }).limit(500).get();
-    ids = [...new Set((pol.data || []).map((p) => p.householdId).filter(Boolean))];
-  }
-  let n = 0;
-  for (const householdId of ids) {
-    await generateWeeklyForHousehold(householdId);
-    n += 1;
-  }
-  return { generated: n };
 }
 
 exports.main = async (event) => {
-  try {
-    if (event && event.Type === "Timer") {
-      if (event.TriggerName === "checkinMissTimer") {
-        const data = await scanAllCheckinPolicies();
-        return { ok: true, data };
-      }
-      if (event.TriggerName === "weeklyReportTimer") {
-        const data = await maybeGenerateWeeklyReports();
-        return { ok: true, data };
-      }
-    }
-  } catch (e) {
-    return { ok: false, message: e.message || "timer error" };
-  }
-
   const { OPENID } = cloud.getWXContext();
   const action = event.action;
   const householdId = event.householdId;
 
   try {
+    if (action === "getOrCreateUser") {
+      let rows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      if (!rows.data.length) {
+        await db.collection("members").add({
+          data: {
+            openid: OPENID,
+            uid: OPENID,
+            display_name: (event.display_name && String(event.display_name).trim()) || "成员",
+            householdId: null,
+            role: "adult",
+            createdAt: new Date(),
+          },
+        });
+        rows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      }
+      const doc = rows.data[0] || {};
+      await migrateMemberDocToJoinTable(doc);
+      let membershipRows = await listHouseholdMemberships(OPENID);
+      const activeFromClient = `${event.activeHouseholdId || event.active_household_id || ""}`.trim();
+      const resolvedHid = resolveActiveHouseholdId(membershipRows, activeFromClient, doc.householdId);
+      const memberships = await enrichMemberships(membershipRows);
+      const currentMb = membershipRows.find((m) => m.householdId === resolvedHid);
+      const display_name = currentMb
+        ? currentMb.display_name || doc.display_name
+        : doc.display_name || "成员";
+      const role = currentMb ? currentMb.role : doc.role || "adult";
+
+      return {
+        ok: true,
+        data: {
+          openid: OPENID,
+          display_name: display_name || "成员",
+          householdId: resolvedHid || null,
+          role,
+          memberships,
+        },
+      };
+    }
+
+    if (action === "createHousehold") {
+      if (!(await bumpRateLimit(OPENID, "createHousehold", rateLimitCreateHousehold()))) {
+        return { ok: false, message: "操作过于频繁，请稍后再试" };
+      }
+      const reqId = `${event.clientRequestId || ""}`.trim().slice(0, 80);
+      let idemKey = null;
+      if (reqId) {
+        idemKey = `createHH_${OPENID}_${reqId}`.replace(/[^a-zA-Z0-9_]/g, "_").slice(0, 90);
+      }
+      if (idemKey) {
+        try {
+          const prev = await db.collection("family_idempotency").doc(idemKey).get();
+          if (prev.data && prev.data.result && prev.data.result.ok) {
+            return prev.data.result;
+          }
+        } catch (e) {
+          console.error("[idempotency_read]", e && e.message);
+        }
+      }
+      const nameRaw = (event.householdName || event.name || "").trim();
+      const name = nameRaw || "我的家庭";
+      const created = await db.collection("households").add({
+        data: {
+          name,
+          createdBy: OPENID,
+          createdAt: new Date(),
+        },
+      });
+      const newHouseholdId = created._id;
+      const membersExist = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      if (!membersExist.data.length) {
+        await db.collection("members").add({
+          data: {
+            openid: OPENID,
+            uid: OPENID,
+            display_name: "成员",
+            householdId: newHouseholdId,
+            role: "adult",
+            joinedAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+      } else {
+        await db.collection("members").where({ openid: OPENID }).update({
+          data: {
+            householdId: newHouseholdId,
+            role: "adult",
+            uid: OPENID,
+            joinedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      }
+      const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const doc = after.data[0] || {};
+      await upsertHouseholdMember(OPENID, newHouseholdId, "adult", doc.display_name || "成员");
+      await tryAudit(OPENID, "createHousehold", newHouseholdId, { name });
+      const createResult = {
+        ok: true,
+        data: {
+          householdId: newHouseholdId,
+          name,
+          openid: OPENID,
+          display_name: doc.display_name || "成员",
+          role: doc.role || "adult",
+        },
+      };
+      if (idemKey) {
+        try {
+          await db.collection("family_idempotency").doc(idemKey).set({
+            data: {
+              savedAt: new Date(),
+              action: "createHousehold",
+              result: createResult,
+            },
+          });
+        } catch (e) {
+          console.error("[idempotency_save]", e && e.message);
+        }
+      }
+      return createResult;
+    }
+
+    if (action === "joinHousehold") {
+      if (!(await bumpRateLimit(OPENID, "joinHousehold", rateLimitJoinHousehold()))) {
+        return { ok: false, message: "尝试次数过多，请稍后再试" };
+      }
+      const rawCode = `${event.inviteCode || event.code || ""}`.trim().toUpperCase();
+      if (!rawCode) return { ok: false, message: "请填写邀请码" };
+      const inviteRows = await db.collection("invite_codes").where({ code: rawCode }).limit(1).get();
+      if (!inviteRows.data.length) return { ok: false, message: "邀请码无效" };
+      const inv = inviteRows.data[0];
+      const exp = inv.expiresAt ? new Date(inv.expiresAt) : null;
+      if (exp && exp.getTime() < Date.now()) return { ok: false, message: "邀请码已过期" };
+      const maxUses =
+        inv.maxUses != null && Number(inv.maxUses) > 0 ? Number(inv.maxUses) : 1;
+      let usedCount = inv.usedCount != null ? Number(inv.usedCount) : 0;
+      if (inv.usedAt && usedCount < 1) usedCount = 1;
+      if (usedCount >= maxUses) {
+        return {
+          ok: false,
+          message: maxUses === 1 ? "邀请码已使用" : "邀请码已达使用上限",
+        };
+      }
+      if (inv.revokedAt) return { ok: false, message: "邀请码已作废" };
+
+      const hid = inv.householdId;
+      const hh = await db.collection("households").doc(hid).get();
+      if (!hh.data || hh.data.dissolvedAt) {
+        return { ok: false, message: "家庭已解散或不存在" };
+      }
+      const joinRole = inv.role === "senior" ? "senior" : "adult";
+      const incomingName = (event.display_name && String(event.display_name).trim()) || "";
+
+      const already = await db
+        .collection("household_members")
+        .where({ openid: OPENID, householdId: hid })
+        .limit(1)
+        .get();
+      if (already.data.length) {
+        await db.collection("members").where({ openid: OPENID }).update({
+          data: { householdId: hid, role: joinRole, updatedAt: new Date() },
+        });
+        const after = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+        const doc = after.data[0] || {};
+        return {
+          ok: true,
+          data: {
+            householdId: hid,
+            openid: OPENID,
+            display_name: doc.display_name || "成员",
+            role: joinRole,
+          },
+        };
+      }
+
+      const memRows = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const displayName = incomingName || (memRows.data.length && memRows.data[0].display_name) || "成员";
+
+      if (!memRows.data.length) {
+        await db.collection("members").add({
+          data: {
+            openid: OPENID,
+            uid: OPENID,
+            display_name: displayName,
+            householdId: hid,
+            role: joinRole,
+            joinedAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+      } else {
+        await db.collection("members").where({ openid: OPENID }).update({
+          data: {
+            householdId: hid,
+            role: joinRole,
+            display_name: incomingName || memRows.data[0].display_name || "成员",
+            uid: OPENID,
+            joinedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      await upsertHouseholdMember(OPENID, hid, joinRole, displayName);
+
+      const _ = db.command;
+      await db.collection("invite_codes").doc(inv._id).update({
+        data: {
+          usedCount: _.inc(1),
+          usedAt: new Date(),
+          usedByOpenid: OPENID,
+        },
+      });
+
+      const afterJoin = await db.collection("members").where({ openid: OPENID }).limit(1).get();
+      const doc = afterJoin.data[0] || {};
+      await tryAudit(OPENID, "joinHousehold", hid, {
+        inviteSuffix: rawCode.length > 4 ? rawCode.slice(-4) : rawCode,
+      });
+      return {
+        ok: true,
+        data: {
+          householdId: hid,
+          openid: OPENID,
+          display_name: doc.display_name || "成员",
+          role: doc.role || joinRole,
+        },
+      };
+    }
+
+    if (action === "leaveHousehold") {
+      const leaveHid = `${event.householdId || event.leaveHouseholdId || ""}`.trim();
+      if (!leaveHid) return { ok: false, message: "householdId is required" };
+
+      const toRemove = await db
+        .collection("household_members")
+        .where({ openid: OPENID, householdId: leaveHid })
+        .get();
+      for (const r of toRemove.data) {
+        await db.collection("household_members").doc(r._id).remove();
+      }
+
+      const remaining = await listHouseholdMemberships(OPENID);
+      const nextHid = remaining.length ? remaining[0].householdId : null;
+      await db.collection("members").where({ openid: OPENID }).update({
+        data: { householdId: nextHid, updatedAt: new Date() },
+      });
+
+      await tryAudit(OPENID, "leaveHousehold", leaveHid, { nextHouseholdId: nextHid });
+      return {
+        ok: true,
+        data: {
+          openid: OPENID,
+          nextHouseholdId: nextHid,
+        },
+      };
+    }
+
     if (!householdId) return { ok: false, message: "householdId is required" };
+
+    if (action === "getHouseholdSummary") {
+      const h = await db.collection("households").doc(householdId).get();
+      if (!h.data) return { ok: false, message: "家庭不存在" };
+      const mem = await db
+        .collection("household_members")
+        .where({ householdId, openid: OPENID })
+        .limit(1)
+        .get();
+      if (!mem.data.length) return { ok: false, message: "无权查看" };
+      return {
+        ok: true,
+        data: {
+          name: h.data.name || "",
+          createdBy: h.data.createdBy || "",
+          dissolvedAt: h.data.dissolvedAt || null,
+        },
+      };
+    }
+
+    if (action === "dissolveHousehold") {
+      if (!(await bumpRateLimit(OPENID, "dissolveHousehold", rateLimitDissolveHousehold()))) {
+        return { ok: false, message: "操作过于频繁，请稍后再试" };
+      }
+      const h = await db.collection("households").doc(householdId).get();
+      if (!h.data) return { ok: false, message: "家庭不存在" };
+      if (h.data.dissolvedAt) return { ok: false, message: "家庭已解散" };
+      if (h.data.createdBy !== OPENID) {
+        return { ok: false, message: "仅家庭创建者可解散" };
+      }
+      const membersInHouse = await db.collection("household_members").where({ householdId }).get();
+      const openids = [...new Set(membersInHouse.data.map((m) => m.openid))];
+      for (const m of membersInHouse.data) {
+        await db.collection("household_members").doc(m._id).remove();
+      }
+      for (const oid of openids) {
+        const remaining = await listHouseholdMemberships(oid);
+        const nextHid = remaining.length ? remaining[0].householdId : null;
+        await db.collection("members").where({ openid: oid }).update({
+          data: { householdId: nextHid, updatedAt: new Date() },
+        });
+      }
+      await db.collection("households").doc(householdId).update({
+        data: {
+          dissolvedAt: new Date(),
+          dissolvedBy: OPENID,
+        },
+      });
+      await tryAudit(OPENID, "dissolveHousehold", householdId, { memberCount: openids.length });
+      return { ok: true, data: { householdId } };
+    }
+
+    const householdGone = await assertHouseholdActive(householdId);
+    if (householdGone) return householdGone;
+
+    if (action === "listInviteCodes") {
+      const rows = await db.collection("invite_codes").where({ householdId }).limit(100).get();
+      const now = Date.now();
+      const list = rows.data
+        .map((r) => {
+          const maxU = r.maxUses != null && Number(r.maxUses) > 0 ? Number(r.maxUses) : 1;
+          let used = r.usedCount != null ? Number(r.usedCount) : 0;
+          if (r.usedAt && used < 1) used = 1;
+          const expired = r.expiresAt && new Date(r.expiresAt).getTime() < now;
+          const revoked = !!r.revokedAt;
+          const exhausted = used >= maxU;
+          let status = "active";
+          if (revoked) status = "revoked";
+          else if (exhausted) status = "exhausted";
+          else if (expired) status = "expired";
+          return {
+            _id: r._id,
+            code: r.code,
+            role: r.role,
+            maxUses: maxU,
+            usedCount: used,
+            expiresAt: r.expiresAt,
+            revokedAt: r.revokedAt || null,
+            createdAt: r.createdAt,
+            createdByOpenid: r.createdBy || "",
+            status,
+          };
+        })
+        .sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        })
+        .slice(0, 50);
+      return { ok: true, data: list };
+    }
+
+    if (action === "updateHouseholdName") {
+      const name = `${event.name || event.householdName || ""}`.trim();
+      if (!name) return { ok: false, message: "请填写家庭名称" };
+      const h = await db.collection("households").doc(householdId).get();
+      if (!h.data) return { ok: false, message: "家庭不存在" };
+      if (h.data.dissolvedAt) return { ok: false, message: "家庭已解散" };
+      if (h.data.createdBy !== OPENID) {
+        return { ok: false, message: "仅家庭创建者可修改名称" };
+      }
+      await db.collection("households").doc(householdId).update({
+        data: { name, nameUpdatedAt: new Date() },
+      });
+      await tryAudit(OPENID, "updateHouseholdName", householdId, { name });
+      return { ok: true, data: { name } };
+    }
+
+    if (action === "revokeInviteCode") {
+      const code = `${event.code || event.inviteCode || ""}`.trim().toUpperCase();
+      if (!code) return { ok: false, message: "请填写邀请码" };
+      const rows = await db.collection("invite_codes").where({ code }).limit(1).get();
+      if (!rows.data.length) return { ok: false, message: "邀请码不存在" };
+      const inv = rows.data[0];
+      if (inv.householdId !== householdId) return { ok: false, message: "无权作废该邀请码" };
+      const hh = await db.collection("households").doc(householdId).get();
+      const isHouseCreator = hh.data && hh.data.createdBy === OPENID;
+      if (inv.createdBy !== OPENID && !isHouseCreator) {
+        return { ok: false, message: "仅邀请码创建者或家庭创建者可作废" };
+      }
+      if (inv.revokedAt) return { ok: false, message: "邀请码已作废" };
+      const cap = inv.maxUses != null && Number(inv.maxUses) > 0 ? Number(inv.maxUses) : 1;
+      await db.collection("invite_codes").doc(inv._id).update({
+        data: {
+          revokedAt: new Date(),
+          usedCount: cap,
+        },
+      });
+      await tryAudit(OPENID, "revokeInviteCode", householdId, {
+        codeSuffix: code.length > 4 ? code.slice(-4) : code,
+      });
+      return { ok: true, data: { code } };
+    }
 
     if (action === "getMorningBrief") {
       const records = await db
@@ -294,7 +609,7 @@ exports.main = async (event) => {
     }
 
     if (action === "createCheckIn") {
-      const displayName = await getDisplayName(OPENID);
+      const displayName = await getDisplayNameForHousehold(OPENID, householdId);
       const payload = {
         householdId,
         openid: OPENID,
@@ -336,7 +651,7 @@ exports.main = async (event) => {
     }
 
     if (action === "addAlbumPhoto") {
-      const displayName = await getDisplayName(OPENID);
+      const displayName = await getDisplayNameForHousehold(OPENID, householdId);
       const payload = {
         householdId,
         fileID: event.fileID,
@@ -350,19 +665,25 @@ exports.main = async (event) => {
     }
 
     if (action === "listMembers") {
-      const records = await db.collection("members").where({ householdId }).get();
-      return { ok: true, data: records.data };
+      const records = await db.collection("household_members").where({ householdId }).get();
+      const data = records.data.map((m) => ({
+        ...m,
+        uid: m.uid || m.openid,
+        display_name: m.display_name || "成员",
+      }));
+      return { ok: true, data };
     }
 
     if (action === "updateMemberRole") {
       const uid = event.uid;
       const role = event.role;
-      await db.collection("members").where({ householdId, uid }).update({
+      await db.collection("household_members").where({ householdId, uid }).update({
         data: {
           role,
           updatedAt: new Date(),
         },
       });
+      await tryAudit(OPENID, "updateMemberRole", householdId, { uid, role });
       return { ok: true, data: { uid, role } };
     }
 
@@ -370,15 +691,25 @@ exports.main = async (event) => {
       const role = event.role === "senior" ? "senior" : "adult";
       const prefix = role === "senior" ? "SEN" : "ADU";
       const code = `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      let maxUses = parseInt(event.maxUses, 10);
+      if (Number.isNaN(maxUses) || maxUses < 1) maxUses = 1;
+      if (maxUses > 100) maxUses = 100;
       const payload = {
         householdId,
         code,
         role,
+        maxUses,
+        usedCount: 0,
         createdBy: OPENID,
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
       };
       await db.collection("invite_codes").add({ data: payload });
+      await tryAudit(OPENID, "createInviteCode", householdId, {
+        maxUses,
+        role,
+        codeSuffix: code.length > 4 ? code.slice(-4) : code,
+      });
       return { ok: true, data: { code } };
     }
 
@@ -405,7 +736,11 @@ exports.main = async (event) => {
     }
 
     if (action === "getCheckinPolicy") {
-      const rows = await db.collection("checkin_policies").where({ householdId }).limit(1).get();
+      const rows = await db
+        .collection("checkin_policies")
+        .where({ householdId })
+        .limit(1)
+        .get();
       if (rows.data.length) return { ok: true, data: rows.data[0] };
       const defaults = {
         householdId,
@@ -415,7 +750,6 @@ exports.main = async (event) => {
         threshold_minutes: 60,
         second_reminder_enabled: false,
         second_reminder_minutes: 30,
-        target_openids: [],
         updated_at: new Date(),
       };
       await db.collection("checkin_policies").add({ data: defaults });
@@ -423,19 +757,16 @@ exports.main = async (event) => {
     }
 
     if (action === "updateCheckinPolicy") {
-      await assertCanEditPolicy(householdId, OPENID);
       const partial = event.partial || {};
-      const rows = await db.collection("checkin_policies").where({ householdId }).limit(1).get();
+      const rows = await db
+        .collection("checkin_policies")
+        .where({ householdId })
+        .limit(1)
+        .get();
       if (!rows.data.length) {
         await db.collection("checkin_policies").add({
           data: {
             householdId,
-            start_time: "08:00",
-            end_time: "10:00",
-            threshold_minutes: 60,
-            second_reminder_enabled: false,
-            second_reminder_minutes: 30,
-            target_openids: [],
             ...partial,
             updated_at: new Date(),
           },
@@ -448,7 +779,11 @@ exports.main = async (event) => {
           },
         });
       }
-      const latest = await db.collection("checkin_policies").where({ householdId }).limit(1).get();
+      const latest = await db
+        .collection("checkin_policies")
+        .where({ householdId })
+        .limit(1)
+        .get();
       return { ok: true, data: latest.data[0] || null };
     }
 
@@ -478,46 +813,13 @@ exports.main = async (event) => {
         owner_openid: OPENID,
         type: event.type || "medicine",
         title: event.title || "未命名提醒",
-        note: event.note || "",
         remind_at: event.remind_at || "08:00",
         repeat_rule: event.repeat_rule || "daily",
-        advance_days: Number(event.advance_days || 0),
-        visibility: event.visibility === "self" ? "self" : "household",
         status: "active",
         created_at: new Date(),
       };
       const added = await db.collection("care_reminders").add({ data: payload });
       return { ok: true, data: { ...payload, _id: added._id } };
-    }
-
-    if (action === "updateCareReminder") {
-      const id = event.id;
-      const row = await db.collection("care_reminders").doc(id).get();
-      const doc = row.data;
-      if (!doc || !doc._id) return { ok: false, message: "reminder not found" };
-      if (doc.householdId !== householdId) return { ok: false, message: "forbidden" };
-      if (doc.owner_openid !== OPENID) return { ok: false, message: "仅创建者可编辑" };
-      const raw = event.partial || {};
-      const partial = Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== undefined));
-      await db.collection("care_reminders").doc(id).update({
-        data: {
-          ...partial,
-          updated_at: new Date(),
-        },
-      });
-      const next = await db.collection("care_reminders").doc(id).get();
-      return { ok: true, data: next.data || null };
-    }
-
-    if (action === "deleteCareReminder") {
-      const id = event.id;
-      const row = await db.collection("care_reminders").doc(id).get();
-      const doc = row.data;
-      if (!doc || !doc._id) return { ok: false, message: "reminder not found" };
-      if (doc.householdId !== householdId) return { ok: false, message: "forbidden" };
-      if (doc.owner_openid !== OPENID) return { ok: false, message: "仅创建者可删除" };
-      await db.collection("care_reminders").doc(id).remove();
-      return { ok: true, data: { id } };
     }
 
     if (action === "setCareReminderDone") {
@@ -536,114 +838,11 @@ exports.main = async (event) => {
         householdId,
         sender_openid: OPENID,
         type,
-        message: event.message || "",
         status: "sent",
         created_at: new Date(),
       };
       const added = await db.collection("help_requests").add({ data: payload });
       return { ok: true, data: { ...payload, _id: added._id } };
-    }
-
-    if (action === "listHelpRequests") {
-      const rows = await db
-        .collection("help_requests")
-        .where({ householdId })
-        .orderBy("created_at", "desc")
-        .limit(50)
-        .get();
-      return { ok: true, data: rows.data };
-    }
-
-    if (action === "cancelHelpRequest") {
-      const id = event.id;
-      const row = await db.collection("help_requests").doc(id).get();
-      const doc = row.data;
-      if (!doc || !doc._id) return { ok: false, message: "not found" };
-      if (doc.householdId !== householdId) return { ok: false, message: "forbidden" };
-      if (doc.sender_openid !== OPENID) return { ok: false, message: "仅本人可撤回" };
-      const age = Date.now() - new Date(doc.created_at).getTime();
-      if (age > 3 * 60 * 1000) return { ok: false, message: "已超过撤回时间" };
-      await db.collection("help_requests").doc(id).update({
-        data: { status: "cancelled", updated_at: new Date() },
-      });
-      return { ok: true, data: { id } };
-    }
-
-    if (action === "getWeeklyReport") {
-      const rows = await db
-        .collection("weekly_reports")
-        .where({ householdId })
-        .orderBy("generated_at", "desc")
-        .limit(1)
-        .get();
-      return { ok: true, data: rows.data[0] || null };
-    }
-
-    if (action === "generateWeeklyReport") {
-      const row = await generateWeeklyForHousehold(householdId);
-      return { ok: true, data: row };
-    }
-
-    if (action === "listDailyStatuses") {
-      const rows = await db
-        .collection("daily_statuses")
-        .where({ householdId })
-        .orderBy("created_at", "desc")
-        .limit(30)
-        .get();
-      return { ok: true, data: rows.data };
-    }
-
-    if (action === "addDailyStatus") {
-      const payload = {
-        householdId,
-        openid: OPENID,
-        date: event.date || new Date().toISOString().slice(0, 10),
-        mood: event.mood || "平稳",
-        sleep_hours: Number(event.sleep_hours || 0),
-        appetite: event.appetite || "正常",
-        note: event.note || "",
-        created_at: new Date(),
-      };
-      const added = await db.collection("daily_statuses").add({ data: payload });
-      return { ok: true, data: { ...payload, _id: added._id } };
-    }
-
-    if (action === "getStatusDigest") {
-      const rows = await db
-        .collection("daily_statuses")
-        .where({ householdId })
-        .orderBy("created_at", "desc")
-        .limit(1)
-        .get();
-      if (!rows.data.length) return { ok: true, data: null };
-      const latest = rows.data[0];
-      return {
-        ok: true,
-        data: {
-          date: latest.date,
-          summary: `睡眠${latest.sleep_hours}小时，心情${latest.mood}，食欲${latest.appetite}`,
-          note: latest.note || "无补充备注",
-        },
-      };
-    }
-
-    if (action === "bootstrapHouseAdmin") {
-      const members = await db.collection("members").where({ householdId }).get();
-      const list = members.data || [];
-      const hasAdmin = list.some((m) => (m.role || "") === "admin");
-      if (hasAdmin) {
-        return { ok: false, message: "当前家庭已有管理员" };
-      }
-      const meRes = await db.collection("members").where({ householdId, openid: OPENID }).limit(1).get();
-      if (!meRes.data.length) {
-        return { ok: false, message: "未找到你的成员记录，请先完成加入家庭流程" };
-      }
-      const docId = meRes.data[0]._id;
-      await db.collection("members").doc(docId).update({
-        data: { role: "admin", updatedAt: new Date() },
-      });
-      return { ok: true, data: { role: "admin" } };
     }
 
     return { ok: false, message: `unknown action: ${action}` };

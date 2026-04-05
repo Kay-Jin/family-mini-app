@@ -108,3 +108,13 @@
   background: transparent;
   border: none;
 }
+
+.senior-actions-hint {
+  margin-bottom: 20rpx;
+  line-height: 1.5;
+}
+
+.subscribe-hint {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+}

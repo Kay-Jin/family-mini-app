@@ -1,5 +1,5 @@
 <view class="container {{seniorMode ? 'senior' : ''}}">
-  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
 
   <view class="card card-critical-edge" wx:if="{{weeklyTeaser && role !== 'senior'}}">
@@ -9,14 +9,15 @@
   </view>
 
   <view class="card" wx:if="{{seniorMode}}">
-    <view class="title">长辈快捷首页</view>
+    <view class="title">今日要点</view>
+    <view class="muted senior-actions-hint">大字按钮，点一次即可报平安。下方可求助或看相册。</view>
     <button class="btn-primary" bindtap="onSafeCheckIn">我很好，报平安</button>
     <view class="help-row">
       <button class="btn-warning help-chip" data-type="call_me" bindtap="onHelpTypeTap">请联系我</button>
       <button class="btn-warning help-chip" data-type="companionship" bindtap="onHelpTypeTap">需要陪同</button>
       <button class="btn-warning help-chip" data-type="unwell" bindtap="onHelpTypeTap">身体不适</button>
     </view>
-    <button class="btn-secondary" bindtap="onViewFamilyDynamics">看看家人动态</button>
+    <button class="btn-secondary" bindtap="onViewFamilyDynamics">看家庭相册</button>
     <button class="btn-secondary small-btn" bindtap="toggleSeniorMore">{{seniorMoreExpanded ? '收起更多' : '更多（晨报与记录）'}}</button>
   </view>
 
@@ -25,6 +26,8 @@
       <view class="title">每日家庭晨报</view>
       <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
       <view wx:if="{{brief && visibility.share_city_weather}}" class="muted">天气：{{brief.city_weather}}</view>
+      <button wx:if="{{!seniorMode}}" class="btn-secondary" bindtap="onSubscribeMorningBrief">开启晨报提醒</button>
+      <view wx:if="{{!seniorMode}}" class="muted subscribe-hint">需微信消息授权；我们不会频繁打扰。</view>
     </view>
 
     <view class="card">
@@ -109,6 +112,16 @@
     <view wx:for="{{checkinAlerts}}" wx:key="id" class="alert-item">
       <text class="alert-badge">预警</text>
       <text>{{item.member_name}}：{{item.message}}</text>
+    </view>
+  </view>
+
+  <view class="{{seniorMode ? 'senior' : ''}}" wx:if="{{showTour}}">
+    <view class="tour-mask" catchtap="onDismissTour">
+      <view class="tour-card" catchtap="tourEat">
+        <view class="tour-title">今日可以做什么？</view>
+        <view class="tour-body">查看家庭晨报、一键报平安。开启长辈模式后，会用更大按钮突出最重要的操作。</view>
+        <button class="btn-primary" bindtap="onDismissTour">知道了</button>
+      </view>
     </view>
   </view>
 </view>

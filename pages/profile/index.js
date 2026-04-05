@@ -1,4 +1,13 @@
-const { getSeniorMode, setSeniorMode, getUserRole, setUserRole } = require("../../utils/storage");
+const {
+  getSeniorMode,
+  setSeniorMode,
+  getUserRole,
+  setUserRole,
+  setDisplayName,
+} = require("../../utils/storage");
+const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
+const tour = require("../../utils/tour");
+const auth = require("../../services/authService");
 const service = require("../../services/familyService");
 const {
   getApiBaseUrl,
@@ -9,6 +18,11 @@ const {
   setCloudEnvId,
   getAuthToken,
   setAuthToken,
+  getHouseholdId,
+  setHouseholdId,
+  getUserId,
+  getSubscribeMorningTmplIds,
+  setSubscribeMorningTmplIds,
 } = require("../../services/apiConfig");
 
 Page({
@@ -16,8 +30,8 @@ Page({
     seniorMode: false,
     role: "adult",
     roleOptions: [
-      { label: "成年成员（adult）", value: "adult" },
-      { label: "长辈成员（senior）", value: "senior" },
+      { label: "成年成员", value: "adult" },
+      { label: "长辈成员", value: "senior" },
     ],
     backendMode: "mock",
     backendModeOptions: [
@@ -28,9 +42,15 @@ Page({
     apiBaseUrl: "",
     cloudEnvId: "",
     authToken: "",
+    subscribeMorningTmplIds: "",
+    myHouseholds: [],
+    /** 折叠「角色模拟 / 接口配置」，减少日常用户干扰 */
+    showAdvanced: false,
+    showTour: false,
   },
 
-  onShow() {
+  async onShow() {
+    if (!ensureHouseholdForCloudbase()) return;
     this.setData({
       seniorMode: getSeniorMode(),
       role: getUserRole(),
@@ -38,7 +58,42 @@ Page({
       apiBaseUrl: getApiBaseUrl(),
       cloudEnvId: getCloudEnvId(),
       authToken: getAuthToken(),
+      subscribeMorningTmplIds: (getSubscribeMorningTmplIds() || []).join(","),
+      showTour: !tour.hasSeenTour("profile"),
     });
+    if (getBackendMode() === "cloudbase") {
+      try {
+        const p = await auth.getOrCreateUserCloud();
+        this.setData({ myHouseholds: p.memberships || [] });
+      } catch (e) {
+        this.setData({ myHouseholds: [] });
+      }
+    } else {
+      this.setData({ myHouseholds: [] });
+    }
+  },
+
+  onSwitchHousehold(e) {
+    const hid = e.currentTarget.dataset.hid;
+    if (!hid) return;
+    const item = (this.data.myHouseholds || []).find((h) => h.householdId === hid);
+    if (!item) return;
+    setHouseholdId(hid);
+    try {
+      const app = getApp();
+      if (app && app.globalData) app.globalData.householdId = hid;
+    } catch (err) {}
+    setUserRole(item.role);
+    setDisplayName(item.display_name || "");
+    auth.persistProfile({
+      householdId: hid,
+      role: item.role,
+      display_name: item.display_name,
+      openid: getUserId(),
+    });
+    this.setData({ role: item.role });
+    wx.showToast({ title: "已切换家庭", icon: "success" });
+    wx.switchTab({ url: "/pages/today/index" });
   },
 
   onSeniorSwitch(e) {
@@ -64,7 +119,25 @@ Page({
     const role = e.detail.value;
     setUserRole(role);
     this.setData({ role });
-    wx.showToast({ title: `当前角色：${role}`, icon: "none" });
+    const label = role === "senior" ? "长辈成员" : "成年成员";
+    wx.showToast({ title: `演示角色：${label}`, icon: "none" });
+  },
+
+  toggleAdvanced() {
+    this.setData({ showAdvanced: !this.data.showAdvanced });
+  },
+
+  onDismissTour() {
+    tour.markTourSeen("profile");
+    this.setData({ showTour: false });
+  },
+
+  tourEat() {},
+
+  onResetTours() {
+    tour.resetAllTours();
+    this.setData({ showTour: !tour.hasSeenTour("profile") });
+    wx.showToast({ title: "已重置，切换 Tab 可再看引导", icon: "none" });
   },
 
   onBackendModeChange(e) {
@@ -86,10 +159,15 @@ Page({
     this.setData({ cloudEnvId: e.detail.value || "" });
   },
 
+  onSubscribeTmplInput(e) {
+    this.setData({ subscribeMorningTmplIds: e.detail.value || "" });
+  },
+
   onSaveApiConfig() {
     setApiBaseUrl(this.data.apiBaseUrl);
     setCloudEnvId(this.data.cloudEnvId);
     setAuthToken(this.data.authToken);
+    setSubscribeMorningTmplIds(this.data.subscribeMorningTmplIds);
     if (wx.cloud && this.data.cloudEnvId) {
       wx.cloud.init({
         env: this.data.cloudEnvId,
@@ -106,5 +184,31 @@ Page({
     } catch (e) {
       wx.showToast({ title: e.message || "操作失败", icon: "none" });
     }
+  },
+
+  onLeaveHousehold() {
+    if (getBackendMode() !== "cloudbase") return;
+    wx.showModal({
+      title: "退出当前家庭",
+      content: "将离开当前家庭。若你还加入了其他家庭，会自动切换到剩余家庭；否则将回到「加入家庭」流程。是否继续？",
+      confirmText: "退出",
+      success: async (res) => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: "处理中" });
+        try {
+          await auth.leaveHouseholdCloud();
+          wx.hideLoading();
+          if (getHouseholdId()) {
+            wx.showToast({ title: "已离开该家庭", icon: "success" });
+          } else {
+            wx.showToast({ title: "已退出", icon: "success" });
+            wx.reLaunch({ url: "/pages/onboarding/index" });
+          }
+        } catch (err) {
+          wx.hideLoading();
+          wx.showToast({ title: err.message || "操作失败", icon: "none" });
+        }
+      },
+    });
   },
 });

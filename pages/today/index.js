@@ -1,5 +1,8 @@
 const service = require("../../services/familyService");
+const api = require("../../services/apiConfig");
 const { getSeniorMode, getUserRole, getLastHelpSentAt, markHelpSent } = require("../../utils/storage");
+const { ensureHouseholdForCloudbase } = require("../../utils/routeGuard");
+const tour = require("../../utils/tour");
 
 const HELP_GAP_MS = 5 * 60 * 1000;
 
@@ -28,15 +31,25 @@ Page({
     statusDigest: null,
     helpRequests: [],
     weeklyTeaser: null,
+    showTour: false,
   },
 
   onShow() {
+    if (!ensureHouseholdForCloudbase()) return;
     this.setData({
       seniorMode: getSeniorMode(),
       role: getUserRole(),
+      showTour: !tour.hasSeenTour("today"),
     });
     this.loadData(false);
   },
+
+  onDismissTour() {
+    tour.markTourSeen("today");
+    this.setData({ showTour: false });
+  },
+
+  tourEat() {},
 
   async onPullDownRefresh() {
     await this.loadData(true);
@@ -194,6 +207,30 @@ Page({
 
   onGoWeekly() {
     wx.navigateTo({ url: "/pages/weekly/index" });
+  },
+
+  onSubscribeMorningBrief() {
+    const tmplIds = api.getSubscribeMorningTmplIds();
+    if (!tmplIds.length) {
+      wx.showModal({
+        title: "开启晨报提醒",
+        content:
+          "需要先在「我的 → 高级与调试 → 接口配置」中填写微信公众平台提供的订阅消息模板 ID（逗号分隔，最多 3 个）。保存后再来开启即可。",
+        showCancel: false,
+      });
+      return;
+    }
+    wx.requestSubscribeMessage({
+      tmplIds,
+      success: (res) => {
+        const accept = Object.keys(res).filter((k) => res[k] === "accept");
+        wx.showToast({
+          title: accept.length ? `已授权 ${accept.length} 条` : "可稍后重试",
+          icon: "none",
+        });
+      },
+      fail: () => wx.showToast({ title: "订阅调用失败", icon: "none" }),
+    });
   },
 });
 

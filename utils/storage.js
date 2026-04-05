@@ -1,6 +1,7 @@
 const KEY_SENIOR_MODE = "senior_mode";
 const KEY_USER_ROLE = "user_role";
 const KEY_HELP_THROTTLE = "help_req_throttle_v1";
+const KEY_DISPLAY_NAME = "display_name";
 
 function getSeniorMode() {
   return !!wx.getStorageSync(KEY_SENIOR_MODE);
@@ -32,4 +33,10 @@ module.exports = {
   },
   getLastHelpSentAt,
   markHelpSent,
+  getDisplayName() {
+    return wx.getStorageSync(KEY_DISPLAY_NAME) || "";
+  },
+  setDisplayName(name) {
+    wx.setStorageSync(KEY_DISPLAY_NAME, (name || "").trim());
+  },
 };

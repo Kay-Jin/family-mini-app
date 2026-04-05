@@ -1,4 +1,5 @@
-const { HOUSEHOLD_ID } = require("./apiConfig");
+const { getHouseholdId } = require("./apiConfig");
+const { callFamilyAuthed } = require("./familyCloudClient");
 
 function normalizeDoc(d) {
   if (!d || typeof d !== "object") return d;
@@ -13,34 +14,13 @@ function normalizeData(d) {
 }
 
 function call(action, payload) {
-  return new Promise((resolve, reject) => {
-    wx.cloud.callFunction({
-      name: "family",
-      data: {
-        action,
-        householdId: HOUSEHOLD_ID,
-        ...(payload || {}),
-      },
-      success(res) {
-        const data = res.result || {};
-        if (data && data.ok === false) {
-          reject(new Error(data.message || "cloud function failed"));
-          return;
-        }
-        const raw = data.data !== undefined ? data.data : data;
-        resolve(normalizeData(raw));
-      },
-      fail(err) {
-        reject(new Error(err.errMsg || "cloud call failed"));
-      },
-    });
-  });
+  return callFamilyAuthed(action, payload).then(normalizeData);
 }
 
 function uploadToCloud(localPath) {
   return new Promise((resolve, reject) => {
     const ext = (localPath.split(".").pop() || "jpg").toLowerCase();
-    const cloudPath = `album/${HOUSEHOLD_ID}/${Date.now()}-${Math.floor(
+    const cloudPath = `album/${getHouseholdId()}/${Date.now()}-${Math.floor(
       Math.random() * 10000
     )}.${ext}`;
     wx.cloud.uploadFile({
@@ -82,8 +62,8 @@ module.exports = {
   updateMemberRole(uid, role) {
     return call("updateMemberRole", { uid, role });
   },
-  createInviteCode(role) {
-    return call("createInviteCode", { role });
+  createInviteCode(role, maxUses) {
+    return call("createInviteCode", { role, maxUses });
   },
   getVisibility() {
     return call("getVisibility");
@@ -141,5 +121,20 @@ module.exports = {
   },
   bootstrapHouseAdmin() {
     return call("bootstrapHouseAdmin");
+  },
+  getHouseholdSummary() {
+    return call("getHouseholdSummary");
+  },
+  revokeInviteCode(code) {
+    return call("revokeInviteCode", { code });
+  },
+  dissolveHousehold() {
+    return call("dissolveHousehold");
+  },
+  listInviteCodes() {
+    return call("listInviteCodes");
+  },
+  updateHouseholdName(name) {
+    return call("updateHouseholdName", { name });
   },
 };
