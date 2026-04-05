@@ -4,6 +4,8 @@
     "pages/health/index",
     "pages/memories/index",
     "pages/profile/index",
+    "pages/status/index",
+    "pages/weekly/index",
     "pages/profile/household/index",
     "pages/profile/visibility/index"
   ],

@@ -14,28 +14,45 @@ page {
   padding: 24rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 8rpx 20rpx rgba(86, 122, 88, 0.1);
-  border: 1rpx solid rgba(42, 34, 27, 0.06);
+  border: 1rpx solid rgba(36, 49, 38, 0.06);
 }
 
 .title {
   font-size: 36rpx;
   font-weight: 600;
   margin-bottom: 16rpx;
-  color: #2a221b;
+  color: #243126;
 }
 
 .muted {
-  color: #655a4f;
+  color: #5e6f61;
 }
 
 .btn-primary {
-  background: #567a58;
+  background: #07c160;
   color: #ffffff;
   border-radius: 14rpx;
   min-height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+}
+
+.btn-secondary {
+  background: #e8f3e8;
+  color: #3e5f44;
+  border-radius: 14rpx;
+  min-height: 88rpx;
+  border: 1rpx solid rgba(62, 95, 68, 0.16);
+}
+
+.btn-warning {
+  background: #fbe8e8;
+  color: #a33a3a;
+  border-radius: 14rpx;
+  min-height: 88rpx;
+  border: 1rpx solid rgba(196, 77, 77, 0.25);
 }
 
 .senior {

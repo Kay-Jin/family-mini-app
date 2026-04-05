@@ -1,5 +1,17 @@
 const { HOUSEHOLD_ID } = require("./apiConfig");
 
+function normalizeDoc(d) {
+  if (!d || typeof d !== "object") return d;
+  if (d._id != null && d.id == null) return { ...d, id: d._id };
+  return d;
+}
+
+function normalizeData(d) {
+  if (d == null) return d;
+  if (Array.isArray(d)) return d.map(normalizeDoc);
+  return normalizeDoc(d);
+}
+
 function call(action, payload) {
   return new Promise((resolve, reject) => {
     wx.cloud.callFunction({
@@ -15,7 +27,8 @@ function call(action, payload) {
           reject(new Error(data.message || "cloud function failed"));
           return;
         }
-        resolve(data.data || data);
+        const raw = data.data !== undefined ? data.data : data;
+        resolve(normalizeData(raw));
       },
       fail(err) {
         reject(new Error(err.errMsg || "cloud call failed"));
@@ -93,10 +106,40 @@ module.exports = {
   addCareReminder(payload) {
     return call("addCareReminder", payload || {});
   },
+  updateCareReminder(id, partial) {
+    return call("updateCareReminder", { id, partial: partial || {} });
+  },
+  deleteCareReminder(id) {
+    return call("deleteCareReminder", { id });
+  },
   setCareReminderDone(id, done) {
     return call("setCareReminderDone", { id, done });
   },
-  createHelpRequest(type) {
-    return call("createHelpRequest", { type });
+  createHelpRequest(type, message) {
+    return call("createHelpRequest", { type, message: message || "" });
+  },
+  listHelpRequests() {
+    return call("listHelpRequests");
+  },
+  cancelHelpRequest(id) {
+    return call("cancelHelpRequest", { id });
+  },
+  listDailyStatuses() {
+    return call("listDailyStatuses");
+  },
+  addDailyStatus(payload) {
+    return call("addDailyStatus", payload || {});
+  },
+  getStatusDigest() {
+    return call("getStatusDigest");
+  },
+  getWeeklyReport() {
+    return call("getWeeklyReport");
+  },
+  generateWeeklyReport() {
+    return call("generateWeeklyReport");
+  },
+  bootstrapHouseAdmin() {
+    return call("bootstrapHouseAdmin");
   },
 };

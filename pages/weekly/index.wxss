@@ -1,0 +1,20 @@
+.container {
+  padding: 24rpx;
+}
+
+.error {
+  color: #c44d4d;
+}
+
+.block-gap {
+  margin-top: 24rpx;
+}
+
+.small-gap {
+  margin-top: 16rpx;
+  font-size: 24rpx;
+}
+
+.line {
+  margin-bottom: 8rpx;
+}

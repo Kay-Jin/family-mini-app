@@ -1,0 +1,26 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="muted">加载中...</view>
+  <view wx:if="{{error}}" class="card error">{{error}}</view>
+
+  <view class="card" wx:if="{{report}}">
+    <view class="title">周期</view>
+    <view class="muted">{{report.week_start}} ~ {{report.week_end}}</view>
+    <view class="title block-gap">概要</view>
+    <view>报平安次数：{{report.checkin_count}}</view>
+    <view>新增相册：{{report.album_new_count}}</view>
+    <view wx:if="{{report.health_summary}}">
+      步数均值：{{report.health_summary.steps_avg}} · 睡眠均值：{{report.health_summary.sleep_avg}}h
+    </view>
+    <view class="title block-gap">重点事件</view>
+    <view wx:if="{{!report.highlights || !report.highlights.length}}" class="muted">本周暂无标记事件</view>
+    <view wx:for="{{report.highlights}}" wx:for-item="h" wx:for-index="hi" wx:key="hi" class="line">{{h.type}} · {{h.detail || h.title}}</view>
+    <view class="muted small-gap">生成时间：{{report.generated_at}}</view>
+  </view>
+
+  <view class="card" wx:if="{{!report && !loading}}">
+    <view class="title">暂无周报</view>
+    <view class="muted">可点击下方生成一份（汇总近 7 日数据）。</view>
+  </view>
+
+  <button class="btn-primary" bindtap="onGenerate" loading="{{generating}}">手动生成周报</button>
+</view>

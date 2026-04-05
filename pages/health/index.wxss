@@ -26,3 +26,15 @@
   margin-top: 12rpx;
 }
 
+.inline-num {
+  width: 120rpx;
+  text-align: right;
+  margin: 0;
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 12rpx;
+}
+

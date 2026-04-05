@@ -3,7 +3,7 @@
   <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
     <view class="title">健康数据看板</view>
-    <view class="muted">展示步数与睡眠概览（MVP 使用 Mock 数据）</view>
+    <view class="muted">汇总步数与睡眠（云开发 / 后端接入后展示真实数据）</view>
   </view>
 
   <view class="card" wx:for="{{snapshots}}" wx:key="date">
@@ -14,17 +14,35 @@
   </view>
 
   <view class="card">
-    <view class="title">用药/复诊提醒</view>
-    <view class="muted">支持每日用药与单次复诊提醒</view>
+    <view class="title">用药 / 复诊提醒</view>
+    <view class="muted" wx:if="{{editingId}}">正在编辑一条提醒，保存或取消后继续新增。</view>
     <view class="row">
       <text>提醒类型</text>
       <picker mode="selector" range="{{['用药提醒','复诊提醒']}}" value="{{reminderDraft.type === 'followup' ? 1 : 0}}" bindchange="onReminderTypeChange">
         <view class="picker-val">{{reminderDraft.type === 'followup' ? '复诊提醒' : '用药提醒'}}</view>
       </picker>
     </view>
-    <input class="input" placeholder="提醒标题（如 早餐后降压药）" value="{{reminderDraft.title}}" bindinput="onReminderTitleInput" />
-    <input class="input" placeholder="提醒时间（如 08:00 / 2026-04-10 09:00）" value="{{reminderDraft.remind_at}}" bindinput="onReminderTimeInput" />
-    <button class="btn-primary" bindtap="onAddReminder">新增提醒</button>
+    <input class="input" placeholder="标题（如 早餐后降压药）" value="{{reminderDraft.title}}" bindinput="onReminderTitleInput" />
+    <input class="input" placeholder="备注（可选）" value="{{reminderDraft.note}}" bindinput="onReminderNoteInput" />
+    <input class="input" placeholder="提醒时间（08:00 或 2026-04-10 09:00）" value="{{reminderDraft.remind_at}}" bindinput="onReminderTimeInput" />
+    <view class="row">
+      <text>重复</text>
+      <picker mode="selector" range="{{repeatLabels}}" value="{{reminderRepeatIndex}}" bindchange="onRepeatChange">
+        <view class="picker-val">{{repeatLabels[reminderRepeatIndex]}}</view>
+      </picker>
+    </view>
+    <view class="row" wx:if="{{reminderDraft.type === 'followup'}}">
+      <text>提前天数</text>
+      <input class="input inline-num" type="number" placeholder="0" value="{{reminderDraft.advance_days}}" bindinput="onAdvanceDaysInput" />
+    </view>
+    <view class="row">
+      <text>可见性</text>
+      <picker mode="selector" range="{{visibilityLabels}}" value="{{reminderVisibilityIndex}}" bindchange="onVisibilityDraftChange">
+        <view class="picker-val">{{reminderDraft.visibility === 'self' ? '仅自己' : '全家可见'}}</view>
+      </picker>
+    </view>
+    <button class="btn-primary" bindtap="onAddReminder">{{editingId ? '保存修改' : '新增提醒'}}</button>
+    <button wx:if="{{editingId}}" class="btn-secondary" bindtap="onCancelEdit">取消编辑</button>
   </view>
 
   <view class="card">
@@ -32,10 +50,15 @@
     <view wx:if="{{!reminders.length}}" class="muted">暂无提醒</view>
     <view wx:for="{{reminders}}" wx:key="id" class="reminder-item">
       <view>{{item.title}}</view>
-      <view class="muted">{{item.type === 'followup' ? '复诊' : '用药'}} · {{item.remind_at}}</view>
+      <view class="muted">{{item.type === 'followup' ? '复诊' : '用药'}} · {{item.remind_at}} · {{item.repeat_rule}}</view>
+      <view class="muted" wx:if="{{item.note}}">备注：{{item.note}}</view>
       <view class="row">
         <text>已完成</text>
         <switch data-id="{{item.id}}" checked="{{item.status === 'done'}}" bindchange="onReminderDoneToggle" />
+      </view>
+      <view class="reminder-actions">
+        <button size="mini" data-id="{{item.id}}" bindtap="onEditReminder">编辑</button>
+        <button size="mini" type="warn" data-id="{{item.id}}" bindtap="onDeleteReminder">删除</button>
       </view>
     </view>
   </view>

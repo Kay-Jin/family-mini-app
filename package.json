@@ -1,0 +1,12 @@
+{
+  "name": "family-mini-app",
+  "private": true,
+  "description": "WeChat mini program — automated smoke uses mockService only (no DevTools).",
+  "scripts": {
+    "test": "node tests/smoke.js",
+    "deploy:cloud": "node scripts/upload-cloud-family.js"
+  },
+  "devDependencies": {
+    "miniprogram-ci": "^2.1.31"
+  }
+}

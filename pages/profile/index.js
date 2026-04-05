@@ -1,4 +1,5 @@
 const { getSeniorMode, setSeniorMode, getUserRole, setUserRole } = require("../../utils/storage");
+const service = require("../../services/familyService");
 const {
   getApiBaseUrl,
   setApiBaseUrl,
@@ -55,6 +56,10 @@ Page({
     wx.navigateTo({ url: "/pages/profile/visibility/index" });
   },
 
+  goWeekly() {
+    wx.navigateTo({ url: "/pages/weekly/index" });
+  },
+
   onRoleChange(e) {
     const role = e.detail.value;
     setUserRole(role);
@@ -92,5 +97,14 @@ Page({
       });
     }
     wx.showToast({ title: "接口配置已保存", icon: "success" });
+  },
+
+  async onBootstrapAdmin() {
+    try {
+      await service.bootstrapHouseAdmin();
+      wx.showToast({ title: "已设为管理员", icon: "success" });
+    } catch (e) {
+      wx.showToast({ title: e.message || "操作失败", icon: "none" });
+    }
   },
 });

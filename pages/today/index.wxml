@@ -2,47 +2,97 @@
   <view wx:if="{{loading}}" class="muted">加载中...</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
 
+  <view class="card card-critical-edge" wx:if="{{weeklyTeaser && role !== 'senior'}}">
+    <view class="title">本周摘要</view>
+    <view class="muted">报平安 {{weeklyTeaser.checkin_count || 0}} 次 · 新相册 {{weeklyTeaser.album_new_count || 0}} 张</view>
+    <button class="btn-secondary small-btn" bindtap="onGoWeekly">查看家庭周报</button>
+  </view>
+
   <view class="card" wx:if="{{seniorMode}}">
     <view class="title">长辈快捷首页</view>
     <button class="btn-primary" bindtap="onSafeCheckIn">我很好，报平安</button>
-    <button bindtap="onHelpTap">需要帮助，请联系我</button>
-    <button bindtap="onViewFamilyDynamics">看看家人动态</button>
-  </view>
-
-  <view class="card" wx:if="{{visibility.include_in_morning_brief}}">
-    <view class="title">每日家庭晨报</view>
-    <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
-    <view wx:if="{{brief && visibility.share_city_weather}}" class="muted">天气：{{brief.city_weather}}</view>
-  </view>
-
-  <view class="card">
-    <view class="title">一键报平安</view>
-    <button class="btn-primary" bindtap="onSafeCheckIn">
-      {{seniorMode ? "我很好，已报平安" : "报平安（<2秒）"}}
-    </button>
-    <view class="muted" wx:if="{{role === 'senior'}}">长辈模式下仅保留核心操作与简洁提示。</view>
-  </view>
-
-  <view class="card" wx:if="{{brief && visibility.include_in_morning_brief}}">
-    <view class="title">成员摘要</view>
-    <view wx:for="{{brief.member_snippets}}" wx:key="uid" class="line">
-      {{item.display_name}}：{{item.note}}
+    <view class="help-row">
+      <button class="btn-warning help-chip" data-type="call_me" bindtap="onHelpTypeTap">请联系我</button>
+      <button class="btn-warning help-chip" data-type="companionship" bindtap="onHelpTypeTap">需要陪同</button>
+      <button class="btn-warning help-chip" data-type="unwell" bindtap="onHelpTypeTap">身体不适</button>
     </view>
+    <button class="btn-secondary" bindtap="onViewFamilyDynamics">看看家人动态</button>
+    <button class="btn-secondary small-btn" bindtap="toggleSeniorMore">{{seniorMoreExpanded ? '收起更多' : '更多（晨报与记录）'}}</button>
   </view>
 
-  <view class="card" wx:if="{{visibility.share_last_checkin_time}}">
-    <view class="title">最近报平安</view>
-    <view wx:if="{{!checkIns.length}}" class="muted">暂无记录</view>
-    <view wx:for="{{checkIns}}" wx:key="id" class="line">
-      {{item.display_name}} · {{item.created_at}}
+  <block wx:if="{{!seniorMode || seniorMoreExpanded}}">
+    <view class="card" wx:if="{{visibility.include_in_morning_brief}}">
+      <view class="title">每日家庭晨报</view>
+      <view wx:if="{{brief}}" class="muted">{{brief.date}} · {{brief.summary_text}}</view>
+      <view wx:if="{{brief && visibility.share_city_weather}}" class="muted">天气：{{brief.city_weather}}</view>
     </view>
-  </view>
+
+    <view class="card">
+      <view class="title">每日状态</view>
+      <view wx:if="{{statusDigest}}" class="muted">{{statusDigest.date}} · {{statusDigest.summary}}</view>
+      <view wx:if="{{statusDigest && statusDigest.note}}" class="muted">{{statusDigest.note}}</view>
+      <view wx:if="{{!statusDigest}}" class="muted">今日还未填写状态</view>
+      <button class="btn-secondary" bindtap="onGoStatusPage">去填写今日状态</button>
+    </view>
+
+    <view class="card" wx:if="{{!seniorMode}}">
+      <view class="title">一键报平安</view>
+      <button class="btn-primary" bindtap="onSafeCheckIn">报平安（&lt;2秒）</button>
+      <view class="help-row">
+        <button class="btn-warning help-chip" data-type="call_me" bindtap="onHelpTypeTap">请联系我</button>
+        <button class="btn-warning help-chip" data-type="companionship" bindtap="onHelpTypeTap">需要陪同</button>
+        <button class="btn-warning help-chip" data-type="unwell" bindtap="onHelpTypeTap">身体不适</button>
+      </view>
+      <view class="muted" wx:if="{{role === 'senior'}}">长辈模式下仅保留核心操作与简洁提示。</view>
+    </view>
+
+    <view class="card" wx:if="{{brief && visibility.include_in_morning_brief}}">
+      <view class="title">成员摘要</view>
+      <view wx:for="{{brief.member_snippets}}" wx:key="uid" class="line">
+        {{item.display_name}}：{{item.note}}
+      </view>
+    </view>
+
+    <view class="card" wx:if="{{visibility.share_last_checkin_time}}">
+      <view class="title">最近报平安</view>
+      <view wx:if="{{!checkIns.length}}" class="muted">暂无记录</view>
+      <view wx:for="{{checkIns}}" wx:key="id" class="line">
+        {{item.display_name}} · {{item.created_at}}
+      </view>
+    </view>
+  </block>
 
   <view class="card" wx:if="{{role !== 'senior'}}">
+    <view class="title">家属 · 近期求助</view>
+    <view wx:if="{{!helpRequests.length}}" class="muted">暂无求助记录</view>
+    <view wx:for="{{helpRequests}}" wx:key="id" class="line help-line">
+      <text class="help-type-tag">{{item._typeLabel}}</text>
+      <text>{{item._displayTime}}</text>
+      <text class="muted" wx:if="{{item.status === 'cancelled'}}">已撤回</text>
+      <button
+        wx:if="{{item.status === 'sent'}}"
+        class="link-cancel"
+        size="mini"
+        data-id="{{item.id}}"
+        bindtap="onCancelHelp"
+      >撤回</button>
+    </view>
+  </view>
+
+  <view class="card alert-card" wx:if="{{role !== 'senior'}}">
     <view class="title">异常未报平安提醒</view>
+    <view class="alert-head">预警中心（异常条目标红提示）</view>
     <view class="line-row">
       <text>启用提醒策略</text>
       <switch checked="{{checkinPolicy.enabled}}" bindchange="onPolicyEnabledChange" />
+    </view>
+    <view class="line-row">
+      <text>监控开始</text>
+      <input class="time-input" value="{{checkinPolicy.start_time}}" bindinput="onPolicyStartInput" bindblur="onPolicyTimeBlur" />
+    </view>
+    <view class="line-row">
+      <text>监控结束</text>
+      <input class="time-input" value="{{checkinPolicy.end_time}}" bindinput="onPolicyEndInput" bindblur="onPolicyTimeBlur" />
     </view>
     <view class="line-row">
       <text>触发阈值</text>
@@ -50,9 +100,15 @@
         <view class="picker-val">{{checkinPolicy.threshold_minutes}}分钟</view>
       </picker>
     </view>
+    <view class="line-row">
+      <text>二次提醒（同日最多2条）</text>
+      <switch checked="{{checkinPolicy.second_reminder_enabled}}" bindchange="onSecondReminderChange" />
+    </view>
+    <view class="muted small-print">云开发环境下由定时触发器每 15 分钟扫描；需重新上传并配置云函数触发器。</view>
     <view wx:if="{{!checkinAlerts.length}}" class="muted">当前无异常提醒</view>
     <view wx:for="{{checkinAlerts}}" wx:key="id" class="alert-item">
-      {{item.member_name}}：{{item.message}}
+      <text class="alert-badge">预警</text>
+      <text>{{item.member_name}}：{{item.message}}</text>
     </view>
   </view>
 </view>

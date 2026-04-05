@@ -1,0 +1,22 @@
+<view class="container {{seniorMode ? 'senior' : ''}}">
+  <view class="card">
+    <view class="title">填写今日状态</view>
+    <input class="input" placeholder="日期（如 2026-04-01）" value="{{form.date}}" bindinput="onDateInput" />
+    <input class="input" placeholder="心情（如 平稳/开心/疲惫）" value="{{form.mood}}" bindinput="onMoodInput" />
+    <input class="input" placeholder="睡眠时长（小时）" value="{{form.sleep_hours}}" bindinput="onSleepInput" />
+    <input class="input" placeholder="食欲（正常/一般/较差）" value="{{form.appetite}}" bindinput="onAppetiteInput" />
+    <input class="input" placeholder="补充备注（可选）" value="{{form.note}}" bindinput="onNoteInput" />
+    <button class="btn-primary" bindtap="onSubmit">保存今日状态</button>
+  </view>
+
+  <view class="card">
+    <view class="title">最近状态记录</view>
+    <view wx:if="{{loading}}" class="muted">加载中...</view>
+    <view wx:if="{{!loading && !statuses.length}}" class="muted">暂无记录</view>
+    <view wx:for="{{statuses}}" wx:key="id" class="status-item">
+      <view>{{item.date}} · 心情{{item.mood}}</view>
+      <view class="muted">睡眠{{item.sleep_hours}}小时 · 食欲{{item.appetite}}</view>
+      <view class="muted" wx:if="{{item.note}}">{{item.note}}</view>
+    </view>
+  </view>
+</view>

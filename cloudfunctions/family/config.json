@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "openapi": []
+  },
+  "triggers": [
+    {
+      "name": "checkinMissTimer",
+      "type": "timer",
+      "config": "0 */15 * * * * *"
+    },
+    {
+      "name": "weeklyReportTimer",
+      "type": "timer",
+      "config": "0 0 22 * * 0 *"
+    }
+  ]
+}

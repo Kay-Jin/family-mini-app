@@ -24,6 +24,7 @@ const checkInPolicy = {
   threshold_minutes: 60,
   second_reminder_enabled: false,
   second_reminder_minutes: 30,
+  target_openids: [],
 };
 
 let checkInAlerts = [
@@ -56,6 +57,17 @@ const careReminders = [
 ];
 
 const helpRequests = [];
+const dailyStatuses = [
+  {
+    id: "s1",
+    date: "2026-04-01",
+    mood: "平稳",
+    sleep_hours: 6.5,
+    appetite: "正常",
+    note: "上午精神不错，午休30分钟。",
+    created_at: "今天 09:10",
+  },
+];
 
 function getMorningBrief() {
   return {
@@ -158,12 +170,29 @@ function addCareReminder(payload) {
     id: `r-${Date.now()}`,
     type: payload.type || "medicine",
     title: payload.title || "未命名提醒",
+    note: payload.note || "",
     remind_at: payload.remind_at || "08:00",
     repeat_rule: payload.repeat_rule || "daily",
+    advance_days: Number(payload.advance_days || 0),
+    visibility: payload.visibility === "self" ? "self" : "household",
     status: "active",
   };
   careReminders.unshift(item);
   return item;
+}
+
+function updateCareReminder(id, partial) {
+  const target = careReminders.find((r) => r.id === id);
+  if (!target) throw new Error("reminder not found");
+  Object.assign(target, partial || {});
+  return { ...target };
+}
+
+function deleteCareReminder(id) {
+  const i = careReminders.findIndex((r) => r.id === id);
+  if (i < 0) throw new Error("reminder not found");
+  careReminders.splice(i, 1);
+  return { id };
 }
 
 function setCareReminderDone(id, done) {
@@ -173,22 +202,94 @@ function setCareReminderDone(id, done) {
   return { ...target };
 }
 
-function createHelpRequest(type) {
+function createHelpRequest(type, message) {
   const t = type || "call_me";
   const item = {
     id: `h-${Date.now()}`,
     type: t,
     message:
-      t === "unwell"
+      message ||
+      (t === "unwell"
         ? "身体不适，需要联系"
         : t === "companionship"
         ? "需要陪同帮助"
-        : "请尽快联系我",
+        : "请尽快联系我"),
     created_at: Date.now(),
     status: "sent",
   };
   helpRequests.unshift(item);
   return item;
+}
+
+function listHelpRequests() {
+  return [...helpRequests];
+}
+
+function cancelHelpRequest(id) {
+  const t = helpRequests.find((h) => h.id === id);
+  if (!t) throw new Error("not found");
+  if (Date.now() - t.created_at > 3 * 60 * 1000) throw new Error("已超过撤回时间");
+  t.status = "cancelled";
+  return { id };
+}
+
+let weeklyReportCache = null;
+
+function getWeeklyReport() {
+  return weeklyReportCache;
+}
+
+function bootstrapHouseAdmin() {
+  if (mockMembers.some((m) => (m.role || "") === "admin")) {
+    throw new Error("当前家庭已有管理员");
+  }
+  if (!mockMembers.length) throw new Error("未找到成员");
+  mockMembers[0].role = "admin";
+  return { role: "admin" };
+}
+
+function generateWeeklyReport() {
+  weeklyReportCache = {
+    week_start: "2026-03-30",
+    week_end: "2026-04-05",
+    checkin_count: checkInHistory.length,
+    album_new_count: mockAlbum.length,
+    health_summary: { steps_avg: 4000, sleep_avg: 6.5 },
+    highlights: [{ type: "demo", detail: "mock 周报" }],
+    generated_at: new Date().toISOString(),
+  };
+  return weeklyReportCache;
+}
+
+function listDailyStatuses() {
+  return [...dailyStatuses];
+}
+
+function addDailyStatus(payload) {
+  const now = new Date();
+  const hh = `${now.getHours()}`.padStart(2, "0");
+  const mm = `${now.getMinutes()}`.padStart(2, "0");
+  const item = {
+    id: `s-${Date.now()}`,
+    date: payload.date || "今天",
+    mood: payload.mood || "平稳",
+    sleep_hours: Number(payload.sleep_hours || 0),
+    appetite: payload.appetite || "正常",
+    note: payload.note || "",
+    created_at: `今天 ${hh}:${mm}`,
+  };
+  dailyStatuses.unshift(item);
+  return item;
+}
+
+function getStatusDigest() {
+  if (!dailyStatuses.length) return null;
+  const latest = dailyStatuses[0];
+  return {
+    date: latest.date,
+    summary: `睡眠${latest.sleep_hours}小时，心情${latest.mood}，食欲${latest.appetite}`,
+    note: latest.note || "无补充备注",
+  };
 }
 
 function updateVisibility(partial) {
@@ -215,8 +316,18 @@ module.exports = {
   getCheckinAlerts,
   listCareReminders,
   addCareReminder,
+  updateCareReminder,
+  deleteCareReminder,
   setCareReminderDone,
   createHelpRequest,
+  listHelpRequests,
+  cancelHelpRequest,
+  listDailyStatuses,
+  addDailyStatus,
+  getStatusDigest,
   getVisibility,
   updateVisibility,
+  getWeeklyReport,
+  generateWeeklyReport,
+  bootstrapHouseAdmin,
 };

@@ -39,4 +39,16 @@
   <view class="card" bindtap="goVisibility">
     <view>可见性与隐私</view>
   </view>
+
+  <view class="card" bindtap="goWeekly">
+    <view>家庭周报</view>
+    <view class="muted">查看或手动生成本周摘要</view>
+  </view>
+
+  <view class="card" wx:if="{{backendMode === 'cloudbase'}}">
+    <view class="title">家庭管理员（云开发）</view>
+    <view class="muted">若数据库里还没有任何 admin，可由一名成员抢先认领；已有管理员时按钮会提示失败。</view>
+    <view class="muted">认领后，方可修改「异常未报平安」策略（见今日页）。</view>
+    <button class="btn-secondary" bindtap="onBootstrapAdmin">认领家庭管理员</button>
+  </view>
 </view>

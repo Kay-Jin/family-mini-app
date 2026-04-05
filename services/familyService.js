@@ -136,11 +136,81 @@ function setCareReminderDone(id, done) {
   return request(`/households/${HOUSEHOLD_ID}/care_reminders/${id}`, "PATCH", { done });
 }
 
-function createHelpRequest(type) {
+function updateCareReminder(id, partial) {
   const mode = getBackendMode();
-  if (mode === "mock") return Promise.resolve(mock.createHelpRequest(type));
-  if (mode === "cloudbase") return cloud.createHelpRequest(type);
-  return request(`/households/${HOUSEHOLD_ID}/help_requests`, "POST", { type });
+  if (mode === "mock") return Promise.resolve(mock.updateCareReminder(id, partial));
+  if (mode === "cloudbase") return cloud.updateCareReminder(id, partial);
+  return request(`/households/${HOUSEHOLD_ID}/care_reminders/${id}`, "PATCH", partial || {});
+}
+
+function deleteCareReminder(id) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.deleteCareReminder(id));
+  if (mode === "cloudbase") return cloud.deleteCareReminder(id);
+  return request(`/households/${HOUSEHOLD_ID}/care_reminders/${id}`, "DELETE");
+}
+
+function createHelpRequest(type, message) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.createHelpRequest(type, message));
+  if (mode === "cloudbase") return cloud.createHelpRequest(type, message);
+  return request(`/households/${HOUSEHOLD_ID}/help_requests`, "POST", { type, message: message || "" });
+}
+
+function listDailyStatuses() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.listDailyStatuses());
+  if (mode === "cloudbase") return cloud.listDailyStatuses();
+  return request(`/households/${HOUSEHOLD_ID}/daily_statuses`);
+}
+
+function addDailyStatus(payload) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.addDailyStatus(payload));
+  if (mode === "cloudbase") return cloud.addDailyStatus(payload);
+  return request(`/households/${HOUSEHOLD_ID}/daily_statuses`, "POST", payload);
+}
+
+function getStatusDigest() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.getStatusDigest());
+  if (mode === "cloudbase") return cloud.getStatusDigest();
+  return request(`/households/${HOUSEHOLD_ID}/daily_statuses/digest`);
+}
+
+function listHelpRequests() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.listHelpRequests());
+  if (mode === "cloudbase") return cloud.listHelpRequests();
+  return request(`/households/${HOUSEHOLD_ID}/help_requests?limit=50`);
+}
+
+function cancelHelpRequest(id) {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.cancelHelpRequest(id));
+  if (mode === "cloudbase") return cloud.cancelHelpRequest(id);
+  return request(`/households/${HOUSEHOLD_ID}/help_requests/${id}/cancel`, "POST", {});
+}
+
+function getWeeklyReport() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.getWeeklyReport());
+  if (mode === "cloudbase") return cloud.getWeeklyReport();
+  return request(`/households/${HOUSEHOLD_ID}/weekly_reports/latest`);
+}
+
+function generateWeeklyReport() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.generateWeeklyReport());
+  if (mode === "cloudbase") return cloud.generateWeeklyReport();
+  return request(`/households/${HOUSEHOLD_ID}/weekly_reports/generate`, "POST", {});
+}
+
+function bootstrapHouseAdmin() {
+  const mode = getBackendMode();
+  if (mode === "mock") return Promise.resolve(mock.bootstrapHouseAdmin());
+  if (mode === "cloudbase") return cloud.bootstrapHouseAdmin();
+  return request(`/households/${HOUSEHOLD_ID}/admin/bootstrap`, "POST", {});
 }
 
 module.exports = {
@@ -162,4 +232,14 @@ module.exports = {
   addCareReminder,
   setCareReminderDone,
   createHelpRequest,
+  listDailyStatuses,
+  addDailyStatus,
+  getStatusDigest,
+  updateCareReminder,
+  deleteCareReminder,
+  listHelpRequests,
+  cancelHelpRequest,
+  getWeeklyReport,
+  generateWeeklyReport,
+  bootstrapHouseAdmin,
 };

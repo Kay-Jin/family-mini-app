@@ -1,5 +1,7 @@
 const service = require("../../services/familyService");
-const { getSeniorMode, getUserRole } = require("../../utils/storage");
+const { getSeniorMode, getUserRole, getLastHelpSentAt, markHelpSent } = require("../../utils/storage");
+
+const HELP_GAP_MS = 5 * 60 * 1000;
 
 Page({
   data: {
@@ -13,12 +15,19 @@ Page({
     error: "",
     seniorMode: false,
     role: "adult",
+    seniorMoreExpanded: false,
     checkinPolicy: {
       enabled: true,
+      start_time: "08:00",
+      end_time: "10:00",
       threshold_minutes: 60,
       second_reminder_enabled: false,
+      second_reminder_minutes: 30,
     },
     checkinAlerts: [],
+    statusDigest: null,
+    helpRequests: [],
+    weeklyTeaser: null,
   },
 
   onShow() {
@@ -34,6 +43,10 @@ Page({
     wx.stopPullDownRefresh();
   },
 
+  toggleSeniorMore() {
+    this.setData({ seniorMoreExpanded: !this.data.seniorMoreExpanded });
+  },
+
   async loadData(isRefresh) {
     this.setData({ loading: !isRefresh, error: "" });
     try {
@@ -42,9 +55,12 @@ Page({
         service.listCheckIns(),
         service.getVisibility(),
       ]);
-      const [checkinPolicy, checkinAlerts] = await Promise.all([
+      const [checkinPolicy, checkinAlerts, statusDigest, helpRequests, weeklyTeaser] = await Promise.all([
         service.getCheckinPolicy(),
         service.getCheckinAlerts(),
+        service.getStatusDigest(),
+        service.listHelpRequests().catch(() => []),
+        service.getWeeklyReport().catch(() => null),
       ]);
       this.setData({
         brief,
@@ -52,6 +68,13 @@ Page({
         visibility,
         checkinPolicy,
         checkinAlerts,
+        statusDigest,
+        helpRequests: (helpRequests || []).map((h) => ({
+          ...h,
+          _displayTime: formatHelpTime(h.created_at),
+          _typeLabel: helpTypeLabel(h.type),
+        })),
+        weeklyTeaser,
         loading: false,
       });
     } catch (err) {
@@ -98,16 +121,97 @@ Page({
     }
   },
 
-  async onHelpTap() {
+  onPolicyStartInput(e) {
+    this.setData({
+      checkinPolicy: { ...this.data.checkinPolicy, start_time: e.detail.value || "08:00" },
+    });
+  },
+
+  onPolicyEndInput(e) {
+    this.setData({
+      checkinPolicy: { ...this.data.checkinPolicy, end_time: e.detail.value || "10:00" },
+    });
+  },
+
+  async onPolicyTimeBlur() {
+    const { start_time, end_time } = this.data.checkinPolicy;
     try {
-      await service.createHelpRequest("call_me");
+      await service.updateCheckinPolicy({ start_time, end_time });
+      wx.showToast({ title: "监控时段已保存", icon: "none" });
+    } catch (err) {
+      wx.showToast({ title: err.message || "保存失败", icon: "none" });
+    }
+  },
+
+  async onSecondReminderChange(e) {
+    const second_reminder_enabled = !!e.detail.value;
+    this.setData({
+      checkinPolicy: { ...this.data.checkinPolicy, second_reminder_enabled },
+    });
+    try {
+      await service.updateCheckinPolicy({ second_reminder_enabled });
+    } catch (err) {
+      wx.showToast({ title: err.message || "更新失败", icon: "none" });
+    }
+  },
+
+  async onHelpTypeTap(e) {
+    const type = e.currentTarget.dataset.type || "call_me";
+    const last = getLastHelpSentAt(type);
+    if (Date.now() - last < HELP_GAP_MS) {
+      wx.showToast({ title: "请稍后再试，避免重复发送", icon: "none" });
+      return;
+    }
+    try {
+      await service.createHelpRequest(type);
+      markHelpSent(type);
       wx.showToast({ title: "求助已发送给家人", icon: "success" });
+      this.loadData(true);
     } catch (err) {
       wx.showToast({ title: err.message || "发送失败", icon: "none" });
+    }
+  },
+
+  async onCancelHelp(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    try {
+      await service.cancelHelpRequest(id);
+      wx.showToast({ title: "已撤回", icon: "none" });
+      this.loadData(true);
+    } catch (err) {
+      wx.showToast({ title: err.message || "无法撤回", icon: "none" });
     }
   },
 
   onViewFamilyDynamics() {
     wx.switchTab({ url: "/pages/memories/index" });
   },
+
+  onGoStatusPage() {
+    wx.navigateTo({ url: "/pages/status/index" });
+  },
+
+  onGoWeekly() {
+    wx.navigateTo({ url: "/pages/weekly/index" });
+  },
 });
+
+function helpTypeLabel(type) {
+  if (type === "companionship") return "需要陪同";
+  if (type === "unwell") return "身体不适";
+  return "请联系我";
+}
+
+function formatHelpTime(ts) {
+  if (ts == null) return "";
+  if (typeof ts === "number") {
+    const d = new Date(ts);
+    return `${d.getHours()}:${`${d.getMinutes()}`.padStart(2, "0")}`;
+  }
+  const d = new Date(ts);
+  if (!Number.isNaN(d.getTime())) {
+    return `${d.getHours()}:${`${d.getMinutes()}`.padStart(2, "0")}`;
+  }
+  return `${ts}`;
+}

@@ -75,12 +75,44 @@
 - `checkin_alerts`
 - `care_reminders`
 - `help_requests`
+- `daily_statuses`
+- `weekly_reports`（家庭周报汇总）
+
+### 定时触发器（`cloudfunctions/family/config.json`）
+
+部署云函数后需在开发者工具中**上传触发器**：
+
+- `checkinMissTimer`：每 15 分钟扫描 `checkin_policies`，在监控时段 + 阈值条件下写入 `checkin_alerts`
+- `weeklyReportTimer`：每周日 **22:00（上海时区）** 为各家庭生成一条 `weekly_reports`
+
+数据库需为相关查询建立索引（控制台提示缺索引时按指引创建），例如 `weekly_reports` 上 `householdId` + `generated_at` 排序。
+
+### 管理员与策略
+
+- 修改「异常未报平安」策略时，云函数会校验：若家庭内存在 `role === 'admin'` 的成员，则**仅 admin** 可 `updateCheckinPolicy`；若尚无 admin，则任意成员可改（便于冷启动）。
+
+### 自动化冒烟（Mock 层）
+
+在项目根目录执行：
+
+```bash
+npm test
+```
+
+覆盖 `mockService` 与 V1.1 扩展字段的契约（不替代微信开发者工具真机/联调）。
+
+### 运维三项（部署 / 索引 / 管理员）
+
+1. **部署云函数与触发器**：见 [`docs/cloud-deploy.md`](docs/cloud-deploy.md)；命令行上传：`npm run deploy:cloud`（需配置 `MINIPROGRAM_PRIVATE_KEY_PATH` 与 `CLOUDBASE_ENV_ID`）。  
+2. **数据库索引**：见 [`docs/cloud-database-indexes.md`](docs/cloud-database-indexes.md)，按表在控制台创建。  
+3. **首位管理员**：云函数 `bootstrapHouseAdmin`；小程序在 **我的**（CloudBase 模式）点「认领家庭管理员」，仅当当前家庭尚无 `role: admin` 时成功。
 
 ### 说明
 
 - 相册上传在 CloudBase 模式下使用 `wx.cloud.uploadFile`，文件地址写入 `album_items`
 - 所有业务操作通过云函数 `family` 的 `action` 分发处理
 - `openid` 由云函数侧获取并用于写入/鉴权基础字段
+- 云函数返回的文档会带 `_id`；`services/cloudService.js` 会映射为 `id` 供 WXML `wx:key` 使用
 
 ## 下一步建议
 
