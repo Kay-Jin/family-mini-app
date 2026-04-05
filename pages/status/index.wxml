@@ -11,10 +11,10 @@
 
   <view class="card">
     <view class="title">最近状态记录</view>
-    <view wx:if="{{loading}}" class="muted">加载中...</view>
+    <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
     <view wx:if="{{!loading && !statuses.length}}" class="muted">暂无记录</view>
     <view wx:for="{{statuses}}" wx:key="id" class="status-item">
-      <view>{{item.date}} · 心情{{item.mood}}</view>
+      <view class="title-sm">{{item.date}} · 心情{{item.mood}}</view>
       <view class="muted">睡眠{{item.sleep_hours}}小时 · 食欲{{item.appetite}}</view>
       <view class="muted" wx:if="{{item.note}}">{{item.note}}</view>
     </view>

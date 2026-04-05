@@ -1,31 +1,16 @@
-<view class="container {{seniorMode ? 'senior' : ''}}">
+<view class="container {{role === 'senior' ? 'senior' : ''}}">
   <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
   <view class="card">
     <view class="title">家庭相册</view>
     <button class="btn-primary" bindtap="onUploadTap" wx:if="{{role !== 'senior' && visibility.share_album_contribute}}">上传照片</button>
-    <view class="muted" wx:if="{{role === 'senior'}}">长辈账号默认仅浏览，上传可由家人代为操作。</view>
+    <view class="muted" wx:if="{{role === 'senior'}}">长辈账号默认仅浏览，上传入口可由家人代操作。</view>
     <view class="muted" wx:if="{{!visibility.share_album_contribute}}">当前家庭已关闭相册共建。</view>
-  </view>
-
-  <view class="card album-empty" wx:if="{{!loading && !items.length}}">
-    <view class="title">暂无照片</view>
-    <view class="muted">还没有家庭照片。若已开启相册共建，可点击上方「上传照片」添加第一张。</view>
   </view>
 
   <view class="card" wx:for="{{items}}" wx:key="id">
     <image wx:if="{{item.thumb_url}}" class="thumb" mode="aspectFill" src="{{item.thumb_url}}" />
-    <view>{{item.uploaded_by}} · {{item.created_at}}</view>
+    <view class="title-sm">{{item.uploaded_by}} · {{item.created_at}}</view>
     <view class="muted">标签：{{item.tags.join(" / ")}}</view>
-  </view>
-
-  <view class="{{seniorMode ? 'senior' : ''}}" wx:if="{{showTour}}">
-    <view class="tour-mask" catchtap="onDismissTour">
-      <view class="tour-card" catchtap="tourEat">
-        <view class="tour-title">家庭相册</view>
-        <view class="tour-body">收藏家人日常照片。长辈模式下字会更大；若不需要上传，可由家人代为添加。</view>
-        <button class="btn-primary" bindtap="onDismissTour">知道了</button>
-      </view>
-    </view>
   </view>
 </view>

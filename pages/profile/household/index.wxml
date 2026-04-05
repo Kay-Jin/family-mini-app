@@ -1,20 +1,6 @@
-<wxs src="../../../utils/i18n.wxs" module="loc" />
-
 <view class="container {{seniorMode ? 'senior' : ''}}">
   <view wx:if="{{loading}}" class="loading-hint muted">正在加载</view>
   <view wx:if="{{error}}" class="card error">{{error}}</view>
-
-  <view class="card" wx:if="{{isHouseholdCreator}}">
-    <view class="title">家庭名称</view>
-    <input
-      class="input-like"
-      placeholder="家庭名称"
-      value="{{newHouseholdName}}"
-      bindinput="onNewHouseholdNameInput"
-    />
-    <button class="btn-primary" bindtap="onSaveHouseholdName">保存名称</button>
-  </view>
-
   <view class="card">
     <view class="title">生成邀请码</view>
     <radio-group bindchange="onInviteRoleChange">
@@ -27,73 +13,16 @@
         <text>长辈</text>
       </label>
     </radio-group>
-    <view class="muted" style="margin-top: 12rpx;">可用人次（1–100，用完即止）</view>
-    <input
-      class="input-like"
-      type="number"
-      value="{{inviteMaxUses}}"
-      bindinput="onInviteMaxUsesInput"
-    />
     <button class="btn-primary" bindtap="onCreateInviteCode">生成邀请码</button>
     <view wx:if="{{inviteCode}}" class="muted">邀请码：{{inviteCode}}</view>
     <button wx:if="{{inviteCode}}" class="btn-secondary" bindtap="onCopyInviteCode">复制邀请码</button>
   </view>
 
-  <view class="card">
-    <view class="title">作废邀请码</view>
-    <view class="muted">仅创建该码的用户可操作；作废后他人无法用该码加入。</view>
-    <input
-      class="input-like"
-      placeholder="完整邀请码"
-      value="{{revokeCode}}"
-      bindinput="onRevokeCodeInput"
-    />
-    <button class="btn-primary" bindtap="onRevokeInvite">作废该邀请码</button>
-  </view>
-
-  <view class="card">
-    <view class="title">邀请码列表（最近）</view>
-    <view wx:if="{{!inviteList.length}}" class="muted">暂无记录</view>
-    <view wx:for="{{inviteList}}" wx:key="_id" class="invite-row">
-      <view>
-        {{item.code}} · {{loc.roleZh(item.role)}} · 已用 {{item.usedCount}}/{{item.maxUses}}
-      </view>
-      <view class="muted">状态：{{loc.inviteStatusZh(item.status)}}</view>
-      <button
-        wx:if="{{item.status === 'active' && (isHouseholdCreator || item.createdByOpenid === currentOpenid)}}"
-        class="btn-mini-revoke"
-        size="mini"
-        bindtap="onRevokeListItem"
-        data-code="{{item.code}}"
-      >
-        作废
-      </button>
-    </view>
-  </view>
-
-  <view class="card danger-zone" wx:if="{{isHouseholdCreator}}">
-    <view class="title">危险操作</view>
-    <view class="muted">你是当前家庭的创建者，可以解散整个家庭。</view>
-    <button class="btn-dissolve" bindtap="onDissolveHousehold">解散家庭</button>
-  </view>
-
-  <view class="card" wx:if="{{members.length}}">
-    <view class="title">家庭成员</view>
-    <view class="muted member-list-hint">在同一卡片内快速浏览；点「调整角色」修改权限。</view>
-    <view class="member-row" wx:for="{{members}}" wx:key="uid">
-      <view class="member-main">
-        <view class="member-name">{{item.display_name}}</view>
-        <view class="muted">角色：{{loc.roleZh(item.role)}}</view>
-      </view>
-      <picker
-        data-uid="{{item.uid}}"
-        mode="selector"
-        range="{{rolePickerLabels}}"
-        bindchange="onMemberRoleChange"
-        value="{{item.role === 'senior' ? 1 : 0}}"
-      >
-        <view class="picker member-role-picker">调整角色</view>
-      </picker>
-    </view>
+  <view class="card" wx:for="{{members}}" wx:key="uid">
+    <view class="title-sm">{{item.display_name}}</view>
+    <view class="muted">角色：{{item.role}}</view>
+    <picker data-uid="{{item.uid}}" mode="selector" range="{{roleRange}}" bindchange="onMemberRoleChange" value="{{item.role === 'senior' ? 1 : 0}}">
+      <view class="picker">调整角色（当前 {{item.role}}）</view>
+    </picker>
   </view>
 </view>

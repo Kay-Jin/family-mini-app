@@ -1,99 +1,142 @@
+/**
+ * 全局 UI — 对齐 docs/ui-ux-design-system-v1.1.md（温馨风）
+ */
+
 page {
-  background: #f7f1e8;
+  background-color: #f7f1e8;
   color: #2a221b;
   font-size: 30rpx;
+  line-height: 1.5;
 }
 
 .container {
   padding: 24rpx;
+  padding-bottom: 48rpx;
 }
 
+/* —— Card —— */
 .card {
   background: #ffffff;
   border-radius: 20rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 8rpx 20rpx rgba(86, 122, 88, 0.1);
-  border: 1rpx solid rgba(36, 49, 38, 0.06);
+  border: 1rpx solid rgba(42, 34, 27, 0.1);
 }
 
+/* —— Typography —— */
 .title {
   font-size: 36rpx;
   font-weight: 600;
   margin-bottom: 16rpx;
-  color: #243126;
+  color: #2a221b;
+}
+
+.title-sm {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+  color: #2a221b;
 }
 
 .muted {
-  color: #5e6f61;
+  color: #655a4f;
+  font-size: 28rpx;
+  line-height: 1.5;
 }
 
-/* 轻量加载反馈（避免仅纯文字） */
-@keyframes loading-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
+.caption {
+  font-size: 24rpx;
+  color: #655a4f;
 }
 
 .loading-hint {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 8rpx 0 16rpx;
-  animation: loading-pulse 1.2s ease-in-out infinite;
+  text-align: center;
+  padding: 40rpx 24rpx;
+  color: #655a4f;
+  font-size: 28rpx;
 }
 
-.loading-hint::before {
-  content: "";
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 50%;
-  background: #567a58;
+/* 错误：整卡强调（白底页上的可恢复错误） */
+.card.error {
+  border-color: rgba(196, 77, 77, 0.35);
+  background: #fff8f8;
+  color: #c44d4d;
 }
 
-.btn-primary {
-  background: #07c160;
-  color: #ffffff;
-  border-radius: 14rpx;
-  min-height: 88rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* —— Buttons（原生 button）—— */
+button::after {
   border: none;
 }
 
-.btn-secondary {
-  background: #e8f3e8;
-  color: #3e5f44;
+button.btn-primary {
+  background: #567a58;
+  color: #ffffff;
   border-radius: 14rpx;
   min-height: 88rpx;
-  border: 1rpx solid rgba(62, 95, 68, 0.16);
-}
-
-.btn-warning {
-  background: #fbe8e8;
-  color: #a33a3a;
-  border-radius: 14rpx;
-  min-height: 88rpx;
-  border: 1rpx solid rgba(196, 77, 77, 0.25);
-}
-
-.btn-secondary {
-  margin-top: 16rpx;
-  background: #e8e2d8;
-  color: #2a221b;
-  border-radius: 14rpx;
-  min-height: 88rpx;
-  font-size: 28rpx;
+  padding: 0 32rpx;
+  font-size: 30rpx;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1.3;
+  border: none;
 }
 
+button.btn-primary.button-hover {
+  background: #476849;
+  color: #ffffff;
+}
+
+button.btn-secondary {
+  background: #f3e9dc;
+  color: #567a58;
+  border-radius: 14rpx;
+  min-height: 88rpx;
+  padding: 0 32rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.3;
+  border: 1rpx solid rgba(86, 122, 88, 0.28);
+}
+
+button.btn-secondary.button-hover {
+  background: #ebe0d4;
+  color: #476849;
+}
+
+/* 求助等「需关注但非错误」：暖色强调（accentWarm） */
+button.btn-warning {
+  background: rgba(214, 163, 94, 0.22);
+  color: #6b4f2a;
+  border-radius: 14rpx;
+  min-height: 88rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.3;
+  border: 1rpx solid rgba(214, 163, 94, 0.55);
+}
+
+button.btn-warning.button-hover {
+  background: rgba(214, 163, 94, 0.38);
+  color: #4a361c;
+}
+
+button + button.btn-primary,
+button + button.btn-secondary,
+button + button.btn-warning {
+  margin-top: 16rpx;
+}
+
+/* —— Senior 模式 —— */
 .senior {
   font-size: 34rpx;
 }
@@ -102,37 +145,132 @@ page {
   font-size: 42rpx;
 }
 
-.senior .btn-primary,
-.senior .btn-secondary,
-.senior button {
+.senior .title-sm {
+  font-size: 38rpx;
+}
+
+.senior .muted {
+  font-size: 30rpx;
+}
+
+.senior button.btn-primary,
+.senior button.btn-secondary,
+.senior button.btn-warning {
   min-height: 96rpx;
   font-size: 34rpx;
 }
 
-/* 首次进入 Tab 的轻量引导（可关闭） */
+/* —— 表单控件基线（页面可追加 modifier）—— */
+.input {
+  border: 1rpx solid rgba(42, 34, 27, 0.1);
+  border-radius: 14rpx;
+  padding: 16rpx;
+  margin: 10rpx 0;
+  background: #faf8f5;
+  color: #2a221b;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.picker-val {
+  color: #567a58;
+  font-weight: 500;
+}
+
+/* 通用一行：左文案右控件 */
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 12rpx 0;
+}
+
+.role-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+/* —— 今日 / 晨报订阅 —— */
+.subscribe-hint {
+  font-size: 24rpx;
+  color: #655a4f;
+  margin-top: 12rpx;
+  line-height: 1.45;
+}
+
+.senior-actions-hint {
+  font-size: 26rpx;
+  color: #655a4f;
+  margin-bottom: 16rpx;
+  line-height: 1.5;
+}
+
+/* —— 我的：高级入口 / 家庭行 —— */
+.card-advanced-toggle {
+  border-style: dashed;
+  border-color: rgba(86, 122, 88, 0.35);
+  background: #faf8f5;
+}
+
+.household-row {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid rgba(42, 34, 27, 0.08);
+}
+
+.household-row:last-child {
+  border-bottom: none;
+}
+
+.household-row:active {
+  opacity: 0.85;
+}
+
+.danger-zone {
+  border: 1rpx solid rgba(196, 77, 77, 0.3);
+  background: #fffaf8;
+}
+
+.btn-leave {
+  margin-top: 20rpx;
+  background: #fff5f5;
+  color: #c44d4d;
+  border: 1rpx solid rgba(196, 77, 77, 0.4);
+  border-radius: 14rpx;
+  min-height: 88rpx;
+  font-weight: 500;
+}
+
+.btn-leave.button-hover {
+  background: #ffecec;
+}
+
+/* —— 新手引导浮层 —— */
 .tour-mask {
   position: fixed;
   left: 0;
   right: 0;
   top: 0;
   bottom: 0;
-  background: rgba(42, 34, 27, 0.45);
   z-index: 1000;
+  background: rgba(42, 34, 27, 0.45);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 48rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  padding: 48rpx;
   box-sizing: border-box;
 }
 
 .tour-card {
-  width: 100%;
-  max-width: 680rpx;
   background: #fffaf5;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   padding: 32rpx;
-  border: 1rpx solid rgba(86, 122, 88, 0.2);
-  box-shadow: 0 12rpx 40rpx rgba(42, 34, 27, 0.18);
+  width: 100%;
+  max-width: 620rpx;
+  border: 1rpx solid rgba(86, 122, 88, 0.22);
+  box-shadow: 0 10rpx 28rpx rgba(42, 34, 27, 0.14);
+  box-sizing: border-box;
 }
 
 .tour-title {
@@ -147,12 +285,4 @@ page {
   color: #655a4f;
   line-height: 1.55;
   margin-bottom: 24rpx;
-}
-
-.senior .tour-title {
-  font-size: 38rpx;
-}
-
-.senior .tour-body {
-  font-size: 32rpx;
 }

@@ -1,13 +1,15 @@
 .error {
-  border-color: rgba(180, 80, 80, 0.35);
+  border-color: rgba(196, 77, 77, 0.35);
 }
 
 .input {
   margin-top: 16rpx;
   padding: 20rpx;
-  border-radius: 12rpx;
-  border: 1rpx solid rgba(42, 34, 27, 0.15);
+  border-radius: 14rpx;
+  border: 1rpx solid rgba(42, 34, 27, 0.12);
   background: #faf8f5;
+  color: #2a221b;
+  font-size: 28rpx;
 }
 
 .pick-row {
@@ -15,8 +17,13 @@
   border-radius: 20rpx;
   padding: 28rpx 24rpx;
   margin-bottom: 16rpx;
-  border: 1rpx solid rgba(42, 34, 27, 0.08);
+  border: 1rpx solid rgba(42, 34, 27, 0.1);
   box-shadow: 0 8rpx 20rpx rgba(86, 122, 88, 0.08);
+}
+
+.pick-row:active {
+  opacity: 0.92;
+  background: #fffaf5;
 }
 
 button + .btn-primary {

@@ -1,15 +1,19 @@
+/**
+ * 设计令牌 — 与 docs/ui-ux-design-system-v1.1.md 保持一致
+ * （WXSS 无法直接 import，样式以 app.wxss 为准；此处供 JS/文档引用）
+ */
 const TOKENS = {
   color: {
-    bgCanvas: "#F2F7F1",
-    bgSubtle: "#E8F3E8",
+    bgCanvas: "#F7F1E8",
+    bgSubtle: "#F3E9DC",
     bgElevated: "#FFFFFF",
-    textPrimary: "#243126",
-    textSecondary: "#5E6F61",
-    brand: "#86B58A",
-    brandPressed: "#6FA374",
+    textPrimary: "#2A221B",
+    textSecondary: "#655A4F",
+    brand: "#567A58",
+    brandPressed: "#476849",
     accentWarm: "#D6A35E",
-    accentWood: "#5B7B5E",
-    borderSubtle: "rgba(36,49,38,0.10)",
+    accentWood: "#8C6346",
+    borderSubtle: "rgba(42,34,27,0.10)",
     success: "#3DBE6E",
     attention: "#E8B860",
     critical: "#C44D4D",
@@ -37,8 +41,8 @@ const TOKENS = {
     pill: 999,
   },
   shadow: {
-    card: "0 8rpx 20rpx rgba(134,181,138,0.10)",
-    floating: "0 10rpx 28rpx rgba(62,95,68,0.14)",
+    card: "0 8rpx 20rpx rgba(86,122,88,0.10)",
+    floating: "0 10rpx 28rpx rgba(42,34,27,0.14)",
   },
   touch: {
     minTarget: 88,
